@@ -14,3 +14,6 @@ def test_rrf_does_not_double_count_duplicate_ids():
     assert ids==['a','b']
     assert scores['a']==1/61
     assert scores['b']==1/62
+
+def test_out_of_scope_ranking_metrics_are_not_applicable():
+    assert metrics(['unrelated'],{},5)=={'recall':None,'mrr':None,'ndcg':None}

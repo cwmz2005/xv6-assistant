@@ -29,6 +29,7 @@ class Session(Base):
     title: Mapped[str] = mapped_column(Text, default="新会话")
 class Message(Base):
     __tablename__ = "messages"
+    __table_args__ = (UniqueConstraint('session_id','sequence',name='uq_messages_session_sequence'),)
     id: Mapped[str] = mapped_column(primary_key=True, default=uid)
     session_id: Mapped[str] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"), index=True)
     role: Mapped[str] = mapped_column(String)

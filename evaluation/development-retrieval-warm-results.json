@@ -1,0 +1,2067 @@
+{
+  "created_at": "2026-11-06T14:53:57.536488+00:00",
+  "k": 5,
+  "candidates": 20,
+  "embedding_model": "intfloat/multilingual-e5-small",
+  "reranker_model": "BAAI/bge-reranker-base",
+  "scope": "retrieval_only",
+  "warmup": true,
+  "records": [
+    {
+      "case_id": "fact-fork-return",
+      "strategy": "dense",
+      "rerank": false,
+      "metrics": {
+        "recall": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0
+      },
+      "results": [
+        {
+          "id": "9a0300eac069904bf877f8f62409090c52327452b0b2a64da096d5133b28c84b",
+          "text": "int\nmain(void)\n{\n  forktest();\n  exit(0);\n}",
+          "location": {
+            "path": "user/forktest.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "main",
+            "end_line": 56,
+            "function": "main",
+            "start_line": 51
+          },
+          "scores": {
+            "cosine_similarity": 0.8975126208357457
+          },
+          "rank": 1
+        },
+        {
+          "id": "7d67cb52f6b8e41c32ff920db4650bd4f6af38cfe03a954a03b781255df07b82",
+          "text": "uint64\nsys_fork(void)\n{\n  return fork();\n}\n",
+          "location": {
+            "path": "kernel/sysproc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "sys_fork",
+            "end_line": 29,
+            "function": "sys_fork",
+            "start_line": 24
+          },
+          "scores": {
+            "cosine_similarity": 0.8883493211373489
+          },
+          "rank": 2
+        },
+        {
+          "id": "48c7040edcc215d2dc6b1838544f5e431e856aca1adb2b154cc5375af44ddd3c",
+          "text": "int\nfork1(void)\n{\n  int pid;\n\n  pid = fork();\n  if(pid == -1)\n    panic(\"fork\");\n  return pid;\n}\n\n//PAGEBREAK!\n// Constructors\n",
+          "location": {
+            "path": "user/sh.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "fork1",
+            "end_line": 195,
+            "function": "fork1",
+            "start_line": 182
+          },
+          "scores": {
+            "cosine_similarity": 0.8825803469073581
+          },
+          "rank": 3
+        },
+        {
+          "id": "f60730a9a8d3c3ea6dd658609c2127a836ecbe13332a2adb0435ff12f84a4cea",
+          "text": "int\nmain()\n{\n  while(1){\n    int pid = fork();\n    if(pid == 0){\n      iter();\n      exit(0);\n    }\n    if(pid > 0){\n      wait(0);\n    }\n    sleep(20);\n    rand_next += 1;\n  }\n}",
+          "location": {
+            "path": "user/grind.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "main",
+            "end_line": 351,
+            "function": "main",
+            "start_line": 336
+          },
+          "scores": {
+            "cosine_similarity": 0.8814275860786438
+          },
+          "rank": 4
+        },
+        {
+          "id": "69ff95fd09409b216f24c8eb36891dfd9aac9d1c522ff5a66022b10160021a8a",
+          "text": "void\nforkfork(char *s)\n{\n  enum { N=2 };\n  \n  for(int i = 0; i < N; i++){\n    int pid = fork();\n    if(pid < 0){\n      printf(\"%s: fork failed\", s);\n      exit(1);\n    }\n    if(pid == 0){\n      for(int j = 0; j < 200; j++){\n        int pid1 = fork();\n        if(pid1 < 0){\n          exit(1);\n        }\n        if(pid1 == 0){\n          exit(0);\n        }\n        wait(0);\n      }\n      exit(0);\n    }\n  }\n\n  int xstatus;\n  for(int i = 0; i < N; i++){\n    wait(&xstatus);\n    if(xstatus != 0) {\n      printf(\"%s: fork in child failed\", s);\n      exit(1);\n    }\n  }\n}\n",
+          "location": {
+            "path": "user/usertests.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "forkfork",
+            "end_line": 996,
+            "function": "forkfork",
+            "start_line": 961
+          },
+          "scores": {
+            "cosine_similarity": 0.8776986598968506
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 5469.011299996055,
+      "reranker_ms": 0.03360000118846074
+    },
+    {
+      "case_id": "fact-fork-return",
+      "strategy": "hybrid",
+      "rerank": false,
+      "metrics": {
+        "recall": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0
+      },
+      "results": [
+        {
+          "id": "b55781ed86a63aa7a1e793a23a8bec3371f264db33b78c79419f600682c6d232",
+          "text": "void\niter()\n{\n  unlink(\"a\");\n  unlink(\"b\");\n  \n  int pid1 = fork();\n  if(pid1 < 0){\n    printf(\"grind: fork failed\\n\");\n    exit(1);\n  }\n  if(pid1 == 0){\n    rand_next ^= 31;\n    go(0);\n    exit(0);\n  }\n\n  int pid2 = fork();\n  if(pid2 < 0){\n    printf(\"grind: fork failed\\n\");\n    exit(1);\n  }\n  if(pid2 == 0){\n    rand_next ^= 7177;\n    go(1);\n    exit(0);\n  }\n\n  int st1 = -1;\n  wait(&st1);\n  if(st1 != 0){\n    kill(pid1);\n    kill(pid2);\n  }\n  int st2 = -1;\n  wait(&st2);\n\n  exit(0);\n}\n",
+          "location": {
+            "path": "user/grind.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "iter",
+            "end_line": 335,
+            "function": "iter",
+            "start_line": 296
+          },
+          "scores": {
+            "cosine_similarity": 0.877469003200531,
+            "bm25": 6.462367486513413,
+            "rrf": 0.030303030303030304
+          },
+          "rank": 1
+        },
+        {
+          "id": "48c7040edcc215d2dc6b1838544f5e431e856aca1adb2b154cc5375af44ddd3c",
+          "text": "int\nfork1(void)\n{\n  int pid;\n\n  pid = fork();\n  if(pid == -1)\n    panic(\"fork\");\n  return pid;\n}\n\n//PAGEBREAK!\n// Constructors\n",
+          "location": {
+            "path": "user/sh.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "fork1",
+            "end_line": 195,
+            "function": "fork1",
+            "start_line": 182
+          },
+          "scores": {
+            "cosine_similarity": 0.8825803469073581,
+            "bm25": 6.2782551888374485,
+            "rrf": 0.029957522915269395
+          },
+          "rank": 2
+        },
+        {
+          "id": "69ff95fd09409b216f24c8eb36891dfd9aac9d1c522ff5a66022b10160021a8a",
+          "text": "void\nforkfork(char *s)\n{\n  enum { N=2 };\n  \n  for(int i = 0; i < N; i++){\n    int pid = fork();\n    if(pid < 0){\n      printf(\"%s: fork failed\", s);\n      exit(1);\n    }\n    if(pid == 0){\n      for(int j = 0; j < 200; j++){\n        int pid1 = fork();\n        if(pid1 < 0){\n          exit(1);\n        }\n        if(pid1 == 0){\n          exit(0);\n        }\n        wait(0);\n      }\n      exit(0);\n    }\n  }\n\n  int xstatus;\n  for(int i = 0; i < N; i++){\n    wait(&xstatus);\n    if(xstatus != 0) {\n      printf(\"%s: fork in child failed\", s);\n      exit(1);\n    }\n  }\n}\n",
+          "location": {
+            "path": "user/usertests.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "forkfork",
+            "end_line": 996,
+            "function": "forkfork",
+            "start_line": 961
+          },
+          "scores": {
+            "cosine_similarity": 0.8776986598968506,
+            "bm25": 6.358229124619652,
+            "rrf": 0.02967032967032967
+          },
+          "rank": 3
+        },
+        {
+          "id": "c8b406dc650accb4a74ee5c8c906c2dbf78b8494755f5307b523670a439ed5e3",
+          "text": "void\nreparent2(char *s)\n{\n  for(int i = 0; i < 800; i++){\n    int pid1 = fork();\n    if(pid1 < 0){\n      printf(\"fork failed\\n\");\n      exit(1);\n    }\n    if(pid1 == 0){\n      fork();\n      fork();\n      exit(0);\n    }\n    wait(0);\n  }\n\n  exit(0);\n}\n\n// allocate all mem, free it, and allocate again",
+          "location": {
+            "path": "user/usertests.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "reparent2",
+            "end_line": 1052,
+            "function": "reparent2",
+            "start_line": 1032
+          },
+          "scores": {
+            "cosine_similarity": 0.8643559894349596,
+            "bm25": 6.723921141420281,
+            "rrf": 0.028629032258064516
+          },
+          "rank": 4
+        },
+        {
+          "id": "39cc508b511c0d49b728ddceaa6620f8ae8136e8f0a7ba2a0b125846558e2551",
+          "text": "      if(sbrk(0) > break0)\n        sbrk(-(sbrk(0) - break0));\n    } else if(what == 17){\n      int pid = fork();\n      if(pid == 0){\n        close(open(\"a\", O_CREATE|O_RDWR));\n        exit(0);\n      } else if(pid < 0){\n        printf(\"grind: fork failed\\n\");\n        exit(1);\n      }\n      if(chdir(\"../grindir/..\") != 0){\n        printf(\"grind: chdir failed\\n\");\n        exit(1);\n      }\n      kill(pid);\n      wait(0);\n    } else if(what == 18){\n      int pid = fork();\n      if(pid == 0){\n        kill(getpid());\n        exit(0);\n      } else if(pid < 0){\n        printf(\"grind: fork failed\\n\");\n        exit(1);\n      }\n      wait(0);\n    } else if(what == 19){\n      int fds[2];\n      if(pipe(fds) < 0){\n        printf(\"grind: pipe failed\\n\");\n        exit(1);\n      }\n      int pid = fork();\n      if(pid == 0){\n        fork();\n        fork();\n        if(write(fds[1], \"x\", 1) != 1)\n          printf(\"grind: pipe write failed\\n\");\n        char c;\n        if(read(fds[0], &c, 1) != 1)\n          printf(\"grind: pipe read failed\\n\");\n        exit(0);\n      } else if(pid < 0){\n        printf(\"grind: fork failed\\n\");\n        exit(1);\n      }\n      close(fds[0]);\n      close(fds[1]);\n      wait(0);\n    } else if(what == 20){\n      int pid = fork();\n      if(pid == 0){\n        unlink(\"a\");\n        mkdir(\"a\");\n        chdir(\"a\");\n        unlink(\"../a\");\n        fd = open(\"x\", O_CREATE|O_RDWR);\n        unlink(\"x\");\n        exit(0);\n      } else if(pid < 0){\n        printf(\"grind: fork failed\\n\");\n        exit(1);\n      }\n      wait(0);\n    } else if(what == 21){\n      unlink(\"c\");\n      // should always succeed. check that there are free i-nodes,\n      // file descriptors, blocks.\n      int fd1 = open(\"c\", O_CREATE|O_RDWR);\n      if(fd1 < 0){\n        printf(\"grind: create c failed\\n\");\n        exit(1);\n      }\n      if(write(fd1, \"x\", 1) != 1){\n        printf(\"grind: write c failed\\n\");\n        exit(1);\n      }\n      struct stat st;\n      if(fstat(fd1, &st) != 0){",
+          "location": {
+            "path": "user/grind.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "go",
+            "end_line": 209,
+            "function": "go",
+            "start_line": 130
+          },
+          "scores": {
+            "cosine_similarity": 0.8648682317216274,
+            "bm25": 6.376136953243869,
+            "rrf": 0.027526395173453996
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 555.108399996243,
+      "reranker_ms": 0.010100004146806896
+    },
+    {
+      "case_id": "fact-fork-return",
+      "strategy": "hybrid",
+      "rerank": true,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "results": [
+        {
+          "id": "d9a559d224e7058b5723049ad7a6a1fd1bb7f198beafa68d7c1f82bad8df766f",
+          "text": "int\nfork(void)\n{\n  int i, pid;\n  struct proc *np;\n  struct proc *p = myproc();\n\n  // Allocate process.\n  if((np = allocproc()) == 0){\n    return -1;\n  }\n\n  // Copy user memory from parent to child.\n  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){\n    freeproc(np);\n    release(&np->lock);\n    return -1;\n  }\n  np->sz = p->sz;\n\n  // copy saved user registers.\n  *(np->trapframe) = *(p->trapframe);\n\n  // Cause fork to return 0 in the child.\n  np->trapframe->a0 = 0;\n\n  // increment reference counts on open file descriptors.\n  for(i = 0; i < NOFILE; i++)\n    if(p->ofile[i])\n      np->ofile[i] = filedup(p->ofile[i]);\n  np->cwd = idup(p->cwd);\n\n  safestrcpy(np->name, p->name, sizeof(p->name));\n\n  pid = np->pid;\n\n  release(&np->lock);\n\n  acquire(&wait_lock);\n  np->parent = p;\n  release(&wait_lock);\n\n  acquire(&np->lock);\n  np->state = RUNNABLE;\n  release(&np->lock);\n\n  return pid;\n}\n\n// Pass p's abandoned children to init.\n// Caller must hold wait_lock.",
+          "location": {
+            "path": "kernel/proc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "fork",
+            "end_line": 329,
+            "function": "fork",
+            "start_line": 279
+          },
+          "scores": {
+            "cosine_similarity": 0.8719990773200454,
+            "rrf": 0.014925373134328358,
+            "cross_encoder": 0.9763859510421753
+          },
+          "rank": 1
+        },
+        {
+          "id": "c8b406dc650accb4a74ee5c8c906c2dbf78b8494755f5307b523670a439ed5e3",
+          "text": "void\nreparent2(char *s)\n{\n  for(int i = 0; i < 800; i++){\n    int pid1 = fork();\n    if(pid1 < 0){\n      printf(\"fork failed\\n\");\n      exit(1);\n    }\n    if(pid1 == 0){\n      fork();\n      fork();\n      exit(0);\n    }\n    wait(0);\n  }\n\n  exit(0);\n}\n\n// allocate all mem, free it, and allocate again",
+          "location": {
+            "path": "user/usertests.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "reparent2",
+            "end_line": 1052,
+            "function": "reparent2",
+            "start_line": 1032
+          },
+          "scores": {
+            "cosine_similarity": 0.8643559894349596,
+            "bm25": 6.723921141420281,
+            "rrf": 0.028629032258064516,
+            "cross_encoder": 0.7972167730331421
+          },
+          "rank": 2
+        },
+        {
+          "id": "7d67cb52f6b8e41c32ff920db4650bd4f6af38cfe03a954a03b781255df07b82",
+          "text": "uint64\nsys_fork(void)\n{\n  return fork();\n}\n",
+          "location": {
+            "path": "kernel/sysproc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "sys_fork",
+            "end_line": 29,
+            "function": "sys_fork",
+            "start_line": 24
+          },
+          "scores": {
+            "cosine_similarity": 0.8883493211373489,
+            "rrf": 0.016129032258064516,
+            "cross_encoder": 0.7719351649284363
+          },
+          "rank": 3
+        },
+        {
+          "id": "f60730a9a8d3c3ea6dd658609c2127a836ecbe13332a2adb0435ff12f84a4cea",
+          "text": "int\nmain()\n{\n  while(1){\n    int pid = fork();\n    if(pid == 0){\n      iter();\n      exit(0);\n    }\n    if(pid > 0){\n      wait(0);\n    }\n    sleep(20);\n    rand_next += 1;\n  }\n}",
+          "location": {
+            "path": "user/grind.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "main",
+            "end_line": 351,
+            "function": "main",
+            "start_line": 336
+          },
+          "scores": {
+            "cosine_similarity": 0.8814275860786438,
+            "rrf": 0.015625,
+            "cross_encoder": 0.7064439654350281
+          },
+          "rank": 4
+        },
+        {
+          "id": "b55781ed86a63aa7a1e793a23a8bec3371f264db33b78c79419f600682c6d232",
+          "text": "void\niter()\n{\n  unlink(\"a\");\n  unlink(\"b\");\n  \n  int pid1 = fork();\n  if(pid1 < 0){\n    printf(\"grind: fork failed\\n\");\n    exit(1);\n  }\n  if(pid1 == 0){\n    rand_next ^= 31;\n    go(0);\n    exit(0);\n  }\n\n  int pid2 = fork();\n  if(pid2 < 0){\n    printf(\"grind: fork failed\\n\");\n    exit(1);\n  }\n  if(pid2 == 0){\n    rand_next ^= 7177;\n    go(1);\n    exit(0);\n  }\n\n  int st1 = -1;\n  wait(&st1);\n  if(st1 != 0){\n    kill(pid1);\n    kill(pid2);\n  }\n  int st2 = -1;\n  wait(&st2);\n\n  exit(0);\n}\n",
+          "location": {
+            "path": "user/grind.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "iter",
+            "end_line": 335,
+            "function": "iter",
+            "start_line": 296
+          },
+          "scores": {
+            "cosine_similarity": 0.877469003200531,
+            "bm25": 6.462367486513413,
+            "rrf": 0.030303030303030304,
+            "cross_encoder": 0.540381669998169
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 585.5500000034226,
+      "reranker_ms": 5732.1832000016
+    },
+    {
+      "case_id": "loc-walkaddr",
+      "strategy": "dense",
+      "rerank": false,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575
+      },
+      "results": [
+        {
+          "id": "3e70ad1d4c364a26d8363fb57fa8a4507eb7bb05a06ba3a59c76f8438f95f59a",
+          "text": "Each PTE contains flag bits that tell the paging hardware how the associated virtual address is allowed to be used. PTE_V indicates whether the PTE is present: if it is not set, a reference to the page causes an exception (i.e., is not allowed). PTE_R controls whether instructions are allowed to read to the page. PTE_W controls whether instructions are allowed to write to the page. PTE_X controls whether the CPU may interpret the content of the page as instructions and execute them. PTE_U controls whether instructions in user mode are allowed to access the page; if PTE_U is not set, the PTE can be used only in supervisor mode. Figure 3.2 shows how it all works. The flags and all other page hardware-related structures are defined in (kernel/riscv.h) To tell a CPU to use a page table, the kernel must write the physical address of the root page- table page into the satp register. A CPU will translate all addresses generated by subsequent instructions using the page table pointed to by its own satp. Each CPU has its own",
+          "location": {
+            "page": 33,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Paging hardware",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "33",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8911679717550322
+          },
+          "rank": 1
+        },
+        {
+          "id": "3c8ead5159a614ada20326dfb36f1f1d2361769e6367ec67cb902d211367392b",
+          "text": "uint64\nwalkaddr(pagetable_t pagetable, uint64 va)\n{\n  pte_t *pte;\n  uint64 pa;\n\n  if(va >= MAXVA)\n    return 0;\n\n  pte = walk(pagetable, va, 0);\n  if(pte == 0)\n    return 0;\n  if((*pte & PTE_V) == 0)\n    return 0;\n  if((*pte & PTE_U) == 0)\n    return 0;\n  pa = PTE2PA(*pte);\n  return pa;\n}\n\n// add a mapping to the kernel page table.\n// only used when booting.\n// does not flush TLB or enable paging.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "walkaddr",
+            "end_line": 130,
+            "function": "walkaddr",
+            "start_line": 108
+          },
+          "scores": {
+            "cosine_similarity": 0.8874103494041966
+          },
+          "rank": 2
+        },
+        {
+          "id": "dfe568dee053025a504a835f26a772cdf454ebfc900c61058f9e600f992bcfde",
+          "text": "4.Otherwise, the PTE is valid. If pte.r = 1 or pte.x = 1, go to step 5. Otherwise, this PTE is a pointer to the next level of the page table. Let i = i− 1. If i < 0, stop and raise a page-fault exception corresponding to the original access type. Otherwise, let a = pte.ppn× PAGESIZE and go to step 2.\n\n5.A leaf PTE has been found. Determine if the requested memory access is allowed by the pte.r, pte.w, pte.x, and pte.u bits, given the current privilege mode and the value of the SUM and MXR fields of the mstatus register. If not, stop and raise a page-fault exception corresponding to the original access type.\n\n6.If i > 0 and pte.ppn[i − 1 : 0] ̸= 0, this is a misaligned superpage; stop and raise a page-fault exception corresponding to the original access type.\n\n7.If pte.a = 0, or if the original memory access is a store and pte.d = 0, either raise a page-fault exception corresponding to the original access type, or:",
+          "location": {
+            "page": 96,
+            "part": 3,
+            "path": "riscv-privileged-20211203.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Virtual Address Translation Process",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "82",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8788672161777502
+          },
+          "rank": 3
+        },
+        {
+          "id": "eb871485d03704b758d228dc806f8aeede2852a971607fd3a1bbd3bb34305367",
+          "text": "pte_t *\nwalk(pagetable_t pagetable, uint64 va, int alloc)\n{\n  if(va >= MAXVA)\n    panic(\"walk\");\n\n  for(int level = 2; level > 0; level--) {\n    pte_t *pte = &pagetable[PX(level, va)];\n    if(*pte & PTE_V) {\n      pagetable = (pagetable_t)PTE2PA(*pte);\n    } else {\n      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)\n        return 0;\n      memset(pagetable, 0, PGSIZE);\n      *pte = PA2PTE(pagetable) | PTE_V;\n    }\n  }\n  return &pagetable[PX(0, va)];\n}\n\n// Look up a virtual address, return the physical address,\n// or 0 if not mapped.\n// Can only be used to look up user pages.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "walk",
+            "end_line": 107,
+            "function": "walk",
+            "start_line": 85
+          },
+          "scores": {
+            "cosine_similarity": 0.8753155805076521
+          },
+          "rank": 4
+        },
+        {
+          "id": "5b21db9a1a723d0e9b3280aeeb79016165dbc532c66255a7b1161446fedc8d0a",
+          "text": "PTE isn’t valid, then the required page hasn’t yet been allocated; if the alloc argument is set, walk allocates a new page-table page and puts its physical address in the PTE. It returns the address of the PTE in the lowest layer in the tree (kernel/vm.c:102). The above code depends on physical memory being direct-mapped into the kernel virtual ad- dress space. For example, as walk descends levels of the page table, it pulls the (physical) address of the next-level-down page table from a PTE (kernel/vm.c:94), and then uses that address as a virtual address to fetch the PTE at the next level down (kernel/vm.c:92). main calls kvminithart (kernel/vm.c:62) to install the kernel page table. It writes the phys- ical address of the root page-table page into the register satp. After this the CPU will translate addresses using the kernel page table. Since the kernel uses an identity mapping, the now virtual address of the next instruction will map to the right physical memory address. Each RISC-V CPU caches page table entries in a Translation Look-aside Buffer (TLB), and when",
+          "location": {
+            "page": 36,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: creating an address space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "36",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8734627441488076
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 458.47589999902993,
+      "reranker_ms": 0.040899998566601425
+    },
+    {
+      "case_id": "loc-walkaddr",
+      "strategy": "hybrid",
+      "rerank": false,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "results": [
+        {
+          "id": "3c8ead5159a614ada20326dfb36f1f1d2361769e6367ec67cb902d211367392b",
+          "text": "uint64\nwalkaddr(pagetable_t pagetable, uint64 va)\n{\n  pte_t *pte;\n  uint64 pa;\n\n  if(va >= MAXVA)\n    return 0;\n\n  pte = walk(pagetable, va, 0);\n  if(pte == 0)\n    return 0;\n  if((*pte & PTE_V) == 0)\n    return 0;\n  if((*pte & PTE_U) == 0)\n    return 0;\n  pa = PTE2PA(*pte);\n  return pa;\n}\n\n// add a mapping to the kernel page table.\n// only used when booting.\n// does not flush TLB or enable paging.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "walkaddr",
+            "end_line": 130,
+            "function": "walkaddr",
+            "start_line": 108
+          },
+          "scores": {
+            "cosine_similarity": 0.8874103494041966,
+            "bm25": 22.355461290809096,
+            "rrf": 0.03252247488101534
+          },
+          "rank": 1
+        },
+        {
+          "id": "3e70ad1d4c364a26d8363fb57fa8a4507eb7bb05a06ba3a59c76f8438f95f59a",
+          "text": "Each PTE contains flag bits that tell the paging hardware how the associated virtual address is allowed to be used. PTE_V indicates whether the PTE is present: if it is not set, a reference to the page causes an exception (i.e., is not allowed). PTE_R controls whether instructions are allowed to read to the page. PTE_W controls whether instructions are allowed to write to the page. PTE_X controls whether the CPU may interpret the content of the page as instructions and execute them. PTE_U controls whether instructions in user mode are allowed to access the page; if PTE_U is not set, the PTE can be used only in supervisor mode. Figure 3.2 shows how it all works. The flags and all other page hardware-related structures are defined in (kernel/riscv.h) To tell a CPU to use a page table, the kernel must write the physical address of the root page- table page into the satp register. A CPU will translate all addresses generated by subsequent instructions using the page table pointed to by its own satp. Each CPU has its own",
+          "location": {
+            "page": 33,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Paging hardware",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "33",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8911679717550322,
+            "bm25": 19.498441040569322,
+            "rrf": 0.032266458495966696
+          },
+          "rank": 2
+        },
+        {
+          "id": "07818843cf1d41262999553107339404c1354450a8619bf0f76be6dd14d34489",
+          "text": "systems often respond in much more interesting ways. As an example, many kernels use page faults to implement copy-on-write (COW) fork. To explain copy-on-write fork, consider xv6’s fork, described in Chapter 3. fork causes the child’s initial memory content to be the same as the parent’s at the time of the fork. Xv6 implements fork with uvmcopy (kernel/vm.c:306), which allocates physical memory for the child and copies the parent’s memory into it. It would be more efficient if the child and parent could share the parent’s physical memory. A straightforward implementation of this would not work, however, since it would cause the parent and child to disrupt each other’s execution with their writes to the shared stack and heap. Parent and child can safely share physical memory by appropriate use of page-table permissions and page faults. The CPU raises a page-fault exception when a virtual address is used that has no mapping in the page table, or has a mapping whose PTE_V flag is clear, or a mapping whose permission bits (PTE_R, PTE_W, PTE_X, PTE_U) forbid the operation being attempted.",
+          "location": {
+            "page": 49,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from kernel space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "49",
+            "start_line": null
+          },
+          "scores": {
+            "bm25": 19.898726640959783,
+            "rrf": 0.016129032258064516
+          },
+          "rank": 3
+        },
+        {
+          "id": "dfe568dee053025a504a835f26a772cdf454ebfc900c61058f9e600f992bcfde",
+          "text": "4.Otherwise, the PTE is valid. If pte.r = 1 or pte.x = 1, go to step 5. Otherwise, this PTE is a pointer to the next level of the page table. Let i = i− 1. If i < 0, stop and raise a page-fault exception corresponding to the original access type. Otherwise, let a = pte.ppn× PAGESIZE and go to step 2.\n\n5.A leaf PTE has been found. Determine if the requested memory access is allowed by the pte.r, pte.w, pte.x, and pte.u bits, given the current privilege mode and the value of the SUM and MXR fields of the mstatus register. If not, stop and raise a page-fault exception corresponding to the original access type.\n\n6.If i > 0 and pte.ppn[i − 1 : 0] ̸= 0, this is a misaligned superpage; stop and raise a page-fault exception corresponding to the original access type.\n\n7.If pte.a = 0, or if the original memory access is a store and pte.d = 0, either raise a page-fault exception corresponding to the original access type, or:",
+          "location": {
+            "page": 96,
+            "part": 3,
+            "path": "riscv-privileged-20211203.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Virtual Address Translation Process",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "82",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8788672161777502,
+            "rrf": 0.015873015873015872
+          },
+          "rank": 4
+        },
+        {
+          "id": "a230620743cb881147578f8c97e9ff81ce81511f8b1196975dcf5d4644428c7a",
+          "text": "The following changes have been made since version 1.11, which, while not strictly backwards compatible, are not anticipated to cause software portability problems in practice:  Changed MRET and SRET to clear mstatus.MPRV when leaving M-mode.  Reserved additional satp patterns for future use.  Stated that the scause Exception Code field must implement bits 4–0 at minimum.  Relaxed I/O regions have been specified to follow RVWMO. The previous specification implied that PPO rules other than fences and acquire/release annotations did not apply.  Constrained the LR/SC reservation set size and shape when using page-based virtual memory.  PMP changes require an SFENCE.VMA on any hart that implements page-based virtual memory, even if VM is not currently enabled.  Allowed for speculative updates of page table entry A bits.  Clarify that if the address-translation algorithm non-speculatively reaches a PTE in which a bit reserved for future standard use is set, a page-fault exception must be raised.",
+          "location": {
+            "page": 3,
+            "part": 2,
+            "path": "riscv-privileged-20211203.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Preface",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "i",
+            "start_line": null
+          },
+          "scores": {
+            "bm25": 17.693848088733265,
+            "rrf": 0.015625
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 648.5780000002705,
+      "reranker_ms": 0.018900005670730025
+    },
+    {
+      "case_id": "loc-walkaddr",
+      "strategy": "hybrid",
+      "rerank": true,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575
+      },
+      "results": [
+        {
+          "id": "3e70ad1d4c364a26d8363fb57fa8a4507eb7bb05a06ba3a59c76f8438f95f59a",
+          "text": "Each PTE contains flag bits that tell the paging hardware how the associated virtual address is allowed to be used. PTE_V indicates whether the PTE is present: if it is not set, a reference to the page causes an exception (i.e., is not allowed). PTE_R controls whether instructions are allowed to read to the page. PTE_W controls whether instructions are allowed to write to the page. PTE_X controls whether the CPU may interpret the content of the page as instructions and execute them. PTE_U controls whether instructions in user mode are allowed to access the page; if PTE_U is not set, the PTE can be used only in supervisor mode. Figure 3.2 shows how it all works. The flags and all other page hardware-related structures are defined in (kernel/riscv.h) To tell a CPU to use a page table, the kernel must write the physical address of the root page- table page into the satp register. A CPU will translate all addresses generated by subsequent instructions using the page table pointed to by its own satp. Each CPU has its own",
+          "location": {
+            "page": 33,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Paging hardware",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "33",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8911679717550322,
+            "bm25": 19.498441040569322,
+            "rrf": 0.032266458495966696,
+            "cross_encoder": 0.6319193840026855
+          },
+          "rank": 1
+        },
+        {
+          "id": "3c8ead5159a614ada20326dfb36f1f1d2361769e6367ec67cb902d211367392b",
+          "text": "uint64\nwalkaddr(pagetable_t pagetable, uint64 va)\n{\n  pte_t *pte;\n  uint64 pa;\n\n  if(va >= MAXVA)\n    return 0;\n\n  pte = walk(pagetable, va, 0);\n  if(pte == 0)\n    return 0;\n  if((*pte & PTE_V) == 0)\n    return 0;\n  if((*pte & PTE_U) == 0)\n    return 0;\n  pa = PTE2PA(*pte);\n  return pa;\n}\n\n// add a mapping to the kernel page table.\n// only used when booting.\n// does not flush TLB or enable paging.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "walkaddr",
+            "end_line": 130,
+            "function": "walkaddr",
+            "start_line": 108
+          },
+          "scores": {
+            "cosine_similarity": 0.8874103494041966,
+            "bm25": 22.355461290809096,
+            "rrf": 0.03252247488101534,
+            "cross_encoder": 0.6161678433418274
+          },
+          "rank": 2
+        },
+        {
+          "id": "5cdc277281a5764bdb25d7c2731faa05603508b4d6119f4586cfcaf34c46269d",
+          "text": "are not the same as the user page table mappings, so the kernel cannot use ordinary instructions to load or store from user-supplied addresses. The kernel implements functions that safely transfer data to and from user-supplied addresses. fetchstr is an example (kernel/syscall.c:25). File system calls such as exec use fetchstr to retrieve string file-name arguments from user space. fetchstr calls copyinstr to do the hard work. copyinstr (kernel/vm.c:403) copies up to max bytes to dst from virtual address srcva in the user page table pagetable. Since pagetable is not the current page table, copyinstr uses walkaddr (which calls walk) to look up srcva in pagetable, yielding physical address pa0. The kernel maps each physical RAM address to the corresponding kernel virtual address, so copyinstr can directly copy string bytes from pa0 to dst. walkaddr (kernel/vm.c:109) checks that the user-supplied virtual address is part of the process’s user address space, so programs",
+          "location": {
+            "page": 47,
+            "part": 5,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "4.3    Code: Calling system calls",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "47",
+            "start_line": null
+          },
+          "scores": {
+            "bm25": 16.20982490372554,
+            "rrf": 0.014492753623188406,
+            "cross_encoder": 0.06021358445286751
+          },
+          "rank": 3
+        },
+        {
+          "id": "5b21db9a1a723d0e9b3280aeeb79016165dbc532c66255a7b1161446fedc8d0a",
+          "text": "PTE isn’t valid, then the required page hasn’t yet been allocated; if the alloc argument is set, walk allocates a new page-table page and puts its physical address in the PTE. It returns the address of the PTE in the lowest layer in the tree (kernel/vm.c:102). The above code depends on physical memory being direct-mapped into the kernel virtual ad- dress space. For example, as walk descends levels of the page table, it pulls the (physical) address of the next-level-down page table from a PTE (kernel/vm.c:94), and then uses that address as a virtual address to fetch the PTE at the next level down (kernel/vm.c:92). main calls kvminithart (kernel/vm.c:62) to install the kernel page table. It writes the phys- ical address of the root page-table page into the register satp. After this the CPU will translate addresses using the kernel page table. Since the kernel uses an identity mapping, the now virtual address of the next instruction will map to the right physical memory address. Each RISC-V CPU caches page table entries in a Translation Look-aside Buffer (TLB), and when",
+          "location": {
+            "page": 36,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: creating an address space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "36",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8734627441488076,
+            "rrf": 0.015384615384615385,
+            "cross_encoder": 0.04054250195622444
+          },
+          "rank": 4
+        },
+        {
+          "id": "2e89ddc38d9df43bdb0c57892860c45b40104172597d589ae3e03146b48233a5",
+          "text": "The trampoline and trapframe may seem excessively complex. A driving force is that the RISC- V intentionally does as little as it can when forcing a trap, to allow the possibility of very fast trap handling, which turns out to be important. As a result, the first few instructions of the kernel trap handler effectively have to execute in the user environment: the user page table, and user register contents. And the trap handler is initially ignorant of useful facts such as the identity of the process that’s running or the address of the kernel page table. A solution is possible because RISC-V provides protected places in which the kernel can stash away information before entering user space: the sscratch register, and user page table entries that point to kernel memory but are protected by lack of PTE_U. Xv6’s trampoline and trapframe exploit these RISC-V features. The need for special trampoline pages could be eliminated if kernel memory were mapped into every process’s user page table (with appropriate PTE permission flags). That would also eliminate the need for a page",
+          "location": {
+            "page": 51,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "4.7    Real world",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "51",
+            "start_line": null
+          },
+          "scores": {
+            "bm25": 17.01333603766999,
+            "rrf": 0.015384615384615385,
+            "cross_encoder": 0.009867665357887745
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 648.9204000026803,
+      "reranker_ms": 5088.03629999602
+    },
+    {
+      "case_id": "cross-fork-copy",
+      "strategy": "dense",
+      "rerank": false,
+      "metrics": {
+        "recall": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0
+      },
+      "results": [
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          },
+          "scores": {
+            "cosine_similarity": 0.8887963427548063
+          },
+          "rank": 1
+        },
+        {
+          "id": "63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566",
+          "text": "## Implement copy-on-write fork(hard)\n\n\n\n\n\n\nYour task is to implement copy-on-write fork in the xv6 kernel. You are\ndone if your modified kernel executes both the cowtest and 'usertests -q'\nprograms successfully.\n\n\n\nTo help you test your implementation, we've provided an xv6 program\ncalled cowtest (source in user/cowtest.c). cowtest runs various tests, but\neven the first will fail on unmodified xv6. Thus, initially, you\nwill see:\n\n\n\n$ cowtest\nsimple: fork() failed\n$ \n\n\n\nThe \"simple\" test allocates more than half of available physical\nmemory, and then fork()s. The fork fails because there is not enough\nfree physical memory to give the child a complete copy of the parent's memory.\n\n\n\nWhen you are done, your kernel should pass all the tests in both cowtest and\nusertests -q. That is:\n\n\n\n$ cowtest\nsimple: ok\nsimple: ok\nthree: zombie!\nok\nthree: zombie!\nok\nthree: zombie!\nok\nfile: ok\nALL COW TESTS PASSED\n$ usertests -q\n...\nALL TESTS PASSED\n$\n\n\n\n\n\nHere's a reasonable plan of attack.\n\n\n\n\n\n Modify uvmcopy() to map the parent's physical pages into the\nchild, instead of allocating new pages. Clear PTE_W in the\nPTEs of both child and parent for pages that have PTE_W set.\n\n  \n\n\n Modify usertrap() to recognize page faults. When a write page-fault\noccurs on a COW page that was originally writeable,\nallocate a new page with kalloc(), copy the old\npage to the new page, and install the new page in the PTE with PTE_W\nset.\nPages that were originally read-only (not mapped PTE_W,\nlike pages in the text segment) should remain read-only and\nshared between parent and child; a process that tries to write\nsuch a page should be killed.\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Implement copy-on-write fork(hard)",
+            "end_line": 160,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 81
+          },
+          "scores": {
+            "cosine_similarity": 0.8796825408935547
+          },
+          "rank": 2
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          },
+          "scores": {
+            "cosine_similarity": 0.8792462944984436
+          },
+          "rank": 3
+        },
+        {
+          "id": "9a0300eac069904bf877f8f62409090c52327452b0b2a64da096d5133b28c84b",
+          "text": "int\nmain(void)\n{\n  forktest();\n  exit(0);\n}",
+          "location": {
+            "path": "user/forktest.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "main",
+            "end_line": 56,
+            "function": "main",
+            "start_line": 51
+          },
+          "scores": {
+            "cosine_similarity": 0.8770664407571307
+          },
+          "rank": 4
+        },
+        {
+          "id": "7d67cb52f6b8e41c32ff920db4650bd4f6af38cfe03a954a03b781255df07b82",
+          "text": "uint64\nsys_fork(void)\n{\n  return fork();\n}\n",
+          "location": {
+            "path": "kernel/sysproc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "sys_fork",
+            "end_line": 29,
+            "function": "sys_fork",
+            "start_line": 24
+          },
+          "scores": {
+            "cosine_similarity": 0.8763207458353269
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 582.9289000030258,
+      "reranker_ms": 0.02359999780310318
+    },
+    {
+      "case_id": "cross-fork-copy",
+      "strategy": "hybrid",
+      "rerank": false,
+      "metrics": {
+        "recall": 0.5,
+        "mrr": 0.25,
+        "ndcg": 0.2640681225725909
+      },
+      "results": [
+        {
+          "id": "63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566",
+          "text": "## Implement copy-on-write fork(hard)\n\n\n\n\n\n\nYour task is to implement copy-on-write fork in the xv6 kernel. You are\ndone if your modified kernel executes both the cowtest and 'usertests -q'\nprograms successfully.\n\n\n\nTo help you test your implementation, we've provided an xv6 program\ncalled cowtest (source in user/cowtest.c). cowtest runs various tests, but\neven the first will fail on unmodified xv6. Thus, initially, you\nwill see:\n\n\n\n$ cowtest\nsimple: fork() failed\n$ \n\n\n\nThe \"simple\" test allocates more than half of available physical\nmemory, and then fork()s. The fork fails because there is not enough\nfree physical memory to give the child a complete copy of the parent's memory.\n\n\n\nWhen you are done, your kernel should pass all the tests in both cowtest and\nusertests -q. That is:\n\n\n\n$ cowtest\nsimple: ok\nsimple: ok\nthree: zombie!\nok\nthree: zombie!\nok\nthree: zombie!\nok\nfile: ok\nALL COW TESTS PASSED\n$ usertests -q\n...\nALL TESTS PASSED\n$\n\n\n\n\n\nHere's a reasonable plan of attack.\n\n\n\n\n\n Modify uvmcopy() to map the parent's physical pages into the\nchild, instead of allocating new pages. Clear PTE_W in the\nPTEs of both child and parent for pages that have PTE_W set.\n\n  \n\n\n Modify usertrap() to recognize page faults. When a write page-fault\noccurs on a COW page that was originally writeable,\nallocate a new page with kalloc(), copy the old\npage to the new page, and install the new page in the PTE with PTE_W\nset.\nPages that were originally read-only (not mapped PTE_W,\nlike pages in the text segment) should remain read-only and\nshared between parent and child; a process that tries to write\nsuch a page should be killed.\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Implement copy-on-write fork(hard)",
+            "end_line": 160,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 81
+          },
+          "scores": {
+            "cosine_similarity": 0.8796825408935547,
+            "bm25": 11.250550084365287,
+            "rrf": 0.03225806451612903
+          },
+          "rank": 1
+        },
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          },
+          "scores": {
+            "cosine_similarity": 0.8887963427548063,
+            "bm25": 9.448473016595756,
+            "rrf": 0.03177805800756621
+          },
+          "rank": 2
+        },
+        {
+          "id": "07818843cf1d41262999553107339404c1354450a8619bf0f76be6dd14d34489",
+          "text": "systems often respond in much more interesting ways. As an example, many kernels use page faults to implement copy-on-write (COW) fork. To explain copy-on-write fork, consider xv6’s fork, described in Chapter 3. fork causes the child’s initial memory content to be the same as the parent’s at the time of the fork. Xv6 implements fork with uvmcopy (kernel/vm.c:306), which allocates physical memory for the child and copies the parent’s memory into it. It would be more efficient if the child and parent could share the parent’s physical memory. A straightforward implementation of this would not work, however, since it would cause the parent and child to disrupt each other’s execution with their writes to the shared stack and heap. Parent and child can safely share physical memory by appropriate use of page-table permissions and page faults. The CPU raises a page-fault exception when a virtual address is used that has no mapping in the page table, or has a mapping whose PTE_V flag is clear, or a mapping whose permission bits (PTE_R, PTE_W, PTE_X, PTE_U) forbid the operation being attempted.",
+          "location": {
+            "page": 49,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from kernel space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "49",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8743141293525696,
+            "bm25": 12.967511223556167,
+            "rrf": 0.03131881575727918
+          },
+          "rank": 3
+        },
+        {
+          "id": "59e41f6f499067df279856058137c3580d92ae337dfbc6c5ff57ecd7622447c1",
+          "text": "int\nuvmcopy(pagetable_t old, pagetable_t new, uint64 sz)\n{\n  pte_t *pte;\n  uint64 pa, i;\n  uint flags;\n  char *mem;\n\n  for(i = 0; i < sz; i += PGSIZE){\n    if((pte = walk(old, i, 0)) == 0)\n      panic(\"uvmcopy: pte should exist\");\n    if((*pte & PTE_V) == 0)\n      panic(\"uvmcopy: page not present\");\n    pa = PTE2PA(*pte);\n    flags = PTE_FLAGS(*pte);\n    if((mem = kalloc()) == 0)\n      goto err;\n    memmove(mem, (char*)pa, PGSIZE);\n    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){\n      kfree(mem);\n      goto err;\n    }\n  }\n  return 0;\n\n err:\n  uvmunmap(new, 0, i / PGSIZE, 1);\n  return -1;\n}\n\n// mark a PTE invalid for user access.\n// used by exec for the user stack guard page.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "uvmcopy",
+            "end_line": 336,
+            "function": "uvmcopy",
+            "start_line": 305
+          },
+          "scores": {
+            "cosine_similarity": 0.868613668166778,
+            "bm25": 10.615566677482695,
+            "rrf": 0.03036576949620428
+          },
+          "rank": 4
+        },
+        {
+          "id": "1b54f1fd89e87fad21ace20eef5e6203de2cfbc64dd99839b1f89050e27c510a",
+          "text": "## The problem\n\n\nThe fork() system call in xv6 copies all of the parent process's\nuser-space memory into the child. If the parent is large, copying can\ntake a long time. Worse, the work is often largely wasted:\nfork() is commonly followed by exec() in the child, which \ndiscards the copied memory, usually without using most of it.\nOn the other hand, if both parent and child use a copied page, and one or both\nwrites it, the copy is truly needed.\n\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "The problem",
+            "end_line": 46,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 35
+          },
+          "scores": {
+            "cosine_similarity": 0.8745387867368006,
+            "bm25": 7.534518815305883,
+            "rrf": 0.03007688828584351
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 735.8906000008574,
+      "reranker_ms": 0.011099997209385037
+    },
+    {
+      "case_id": "cross-fork-copy",
+      "strategy": "hybrid",
+      "rerank": true,
+      "metrics": {
+        "recall": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0
+      },
+      "results": [
+        {
+          "id": "07818843cf1d41262999553107339404c1354450a8619bf0f76be6dd14d34489",
+          "text": "systems often respond in much more interesting ways. As an example, many kernels use page faults to implement copy-on-write (COW) fork. To explain copy-on-write fork, consider xv6’s fork, described in Chapter 3. fork causes the child’s initial memory content to be the same as the parent’s at the time of the fork. Xv6 implements fork with uvmcopy (kernel/vm.c:306), which allocates physical memory for the child and copies the parent’s memory into it. It would be more efficient if the child and parent could share the parent’s physical memory. A straightforward implementation of this would not work, however, since it would cause the parent and child to disrupt each other’s execution with their writes to the shared stack and heap. Parent and child can safely share physical memory by appropriate use of page-table permissions and page faults. The CPU raises a page-fault exception when a virtual address is used that has no mapping in the page table, or has a mapping whose PTE_V flag is clear, or a mapping whose permission bits (PTE_R, PTE_W, PTE_X, PTE_U) forbid the operation being attempted.",
+          "location": {
+            "page": 49,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from kernel space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "49",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8743141293525696,
+            "bm25": 12.967511223556167,
+            "rrf": 0.03131881575727918,
+            "cross_encoder": 0.835411548614502
+          },
+          "rank": 1
+        },
+        {
+          "id": "63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566",
+          "text": "## Implement copy-on-write fork(hard)\n\n\n\n\n\n\nYour task is to implement copy-on-write fork in the xv6 kernel. You are\ndone if your modified kernel executes both the cowtest and 'usertests -q'\nprograms successfully.\n\n\n\nTo help you test your implementation, we've provided an xv6 program\ncalled cowtest (source in user/cowtest.c). cowtest runs various tests, but\neven the first will fail on unmodified xv6. Thus, initially, you\nwill see:\n\n\n\n$ cowtest\nsimple: fork() failed\n$ \n\n\n\nThe \"simple\" test allocates more than half of available physical\nmemory, and then fork()s. The fork fails because there is not enough\nfree physical memory to give the child a complete copy of the parent's memory.\n\n\n\nWhen you are done, your kernel should pass all the tests in both cowtest and\nusertests -q. That is:\n\n\n\n$ cowtest\nsimple: ok\nsimple: ok\nthree: zombie!\nok\nthree: zombie!\nok\nthree: zombie!\nok\nfile: ok\nALL COW TESTS PASSED\n$ usertests -q\n...\nALL TESTS PASSED\n$\n\n\n\n\n\nHere's a reasonable plan of attack.\n\n\n\n\n\n Modify uvmcopy() to map the parent's physical pages into the\nchild, instead of allocating new pages. Clear PTE_W in the\nPTEs of both child and parent for pages that have PTE_W set.\n\n  \n\n\n Modify usertrap() to recognize page faults. When a write page-fault\noccurs on a COW page that was originally writeable,\nallocate a new page with kalloc(), copy the old\npage to the new page, and install the new page in the PTE with PTE_W\nset.\nPages that were originally read-only (not mapped PTE_W,\nlike pages in the text segment) should remain read-only and\nshared between parent and child; a process that tries to write\nsuch a page should be killed.\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Implement copy-on-write fork(hard)",
+            "end_line": 160,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 81
+          },
+          "scores": {
+            "cosine_similarity": 0.8796825408935547,
+            "bm25": 11.250550084365287,
+            "rrf": 0.03225806451612903,
+            "cross_encoder": 0.6776341795921326
+          },
+          "rank": 2
+        },
+        {
+          "id": "2375b745f2c312b07d9fab5373cc9c7200271e56a6b7d21844e79cbb1100f8fd",
+          "text": "An xv6 process consists of user-space memory (instructions, data, and stack) and per-process state private to the kernel. Xv6 time-shares processes: it transparently switches the available CPUs among the set of processes waiting to execute. When a process is not executing, xv6 saves the process’s CPU registers, restoring them when it next runs the process. The kernel associates a process identifier, or PID, with each process. A process may create a new process using the fork system call. fork gives the new process an exact copy of the calling process’s memory, both instructions and data. fork returns in both the original and new processes. In the original process, fork returns the new process’s PID. In the new process, fork returns zero. The original and new processes are often called the parent and child.\n\nfor central processing unit. Other documentation (e.g., the RISC-V specification) also uses the words processor, core, and hart instead of CPU.",
+          "location": {
+            "page": 10,
+            "part": 4,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Processes and memory",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "10",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8677530367521638,
+            "bm25": 9.095857621305196,
+            "rrf": 0.029437229437229435,
+            "cross_encoder": 0.5539207458496094
+          },
+          "rank": 3
+        },
+        {
+          "id": "4c54904a26a046866ae1c80d88b9ea5cd4c8d83e3170801a0e97e51ab5737445",
+          "text": "You might wonder why fork and exec are not combined in a single call; we will see later that the shell exploits the separation in its implementation of I/O redirection. To avoid the wastefulness of creating a duplicate process and then immediately replacing it (with exec), operating kernels optimize the implementation of fork for this use case by using virtual memory techniques such as copy-on-write (see Section 4.6). Xv6 allocates most user-space memory implicitly: fork allocates the memory required for the child’s copy of the parent’s memory, and exec allocates enough memory to hold the executable file. A process that needs more memory at run-time (perhaps for malloc) can call sbrk(n) to grow its data memory by n bytes; sbrk returns the location of the new memory.\n\n1.2 I/O and File descriptors",
+          "location": {
+            "page": 13,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "1.2    I/O and File descriptors",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "13",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8657474677863817,
+            "bm25": 7.05143700181458,
+            "rrf": 0.02817460317460317,
+            "cross_encoder": 0.5322184562683105
+          },
+          "rank": 4
+        },
+        {
+          "id": "1b54f1fd89e87fad21ace20eef5e6203de2cfbc64dd99839b1f89050e27c510a",
+          "text": "## The problem\n\n\nThe fork() system call in xv6 copies all of the parent process's\nuser-space memory into the child. If the parent is large, copying can\ntake a long time. Worse, the work is often largely wasted:\nfork() is commonly followed by exec() in the child, which \ndiscards the copied memory, usually without using most of it.\nOn the other hand, if both parent and child use a copied page, and one or both\nwrites it, the copy is truly needed.\n\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "The problem",
+            "end_line": 46,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 35
+          },
+          "scores": {
+            "cosine_similarity": 0.8745387867368006,
+            "bm25": 7.534518815305883,
+            "rrf": 0.03007688828584351,
+            "cross_encoder": 0.4165198504924774
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 724.6440999952029,
+      "reranker_ms": 7064.385600002424
+    },
+    {
+      "case_id": "fact-usertrap-epc",
+      "strategy": "dense",
+      "rerank": false,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 0.3333333333333333,
+        "ndcg": 0.5
+      },
+      "results": [
+        {
+          "id": "2e4f92d7c9adfcc800bbf0384aa0f66c126616ff42b9150a72d4bb3d5a052803",
+          "text": "of the usertrap function, and the address of the kernel page table. uservec retrieves these values, switches satp to the kernel page table, and calls usertrap. The job of usertrap is to determine the cause of the trap, process it, and return (kernel/- trap.c:37). It first changes stvec so that a trap while in the kernel will be handled by kernelvec rather than uservec. It saves the sepc register (the saved user program counter), because usertrap might call yield to switch to another process’s kernel thread, and that process might return to user space, in the process of which it will modify sepc. If the trap is a system call, usertrap calls syscall to handle it; if a device interrupt, devintr; otherwise it’s an ex- ception, and the kernel kills the faulting process. The system call path adds four to the saved user program counter because RISC-V, in the case of a system call, leaves the program pointer pointing to the ecall instruction but user code needs to resume executing at the subsequent instruction. On the way out, usertrap checks",
+          "location": {
+            "page": 46,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from user space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "46",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8717507123947144
+          },
+          "rank": 1
+        },
+        {
+          "id": "2e89ddc38d9df43bdb0c57892860c45b40104172597d589ae3e03146b48233a5",
+          "text": "The trampoline and trapframe may seem excessively complex. A driving force is that the RISC- V intentionally does as little as it can when forcing a trap, to allow the possibility of very fast trap handling, which turns out to be important. As a result, the first few instructions of the kernel trap handler effectively have to execute in the user environment: the user page table, and user register contents. And the trap handler is initially ignorant of useful facts such as the identity of the process that’s running or the address of the kernel page table. A solution is possible because RISC-V provides protected places in which the kernel can stash away information before entering user space: the sscratch register, and user page table entries that point to kernel memory but are protected by lack of PTE_U. Xv6’s trampoline and trapframe exploit these RISC-V features. The need for special trampoline pages could be eliminated if kernel memory were mapped into every process’s user page table (with appropriate PTE permission flags). That would also eliminate the need for a page",
+          "location": {
+            "page": 51,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "4.7    Real world",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "51",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8687272228327786
+          },
+          "rank": 2
+        },
+        {
+          "id": "701223840b7bcf1ab3ee451b4a5cd90832e843757deca61f1444d71dcc20e722",
+          "text": "void\nusertrap(void)\n{\n  int which_dev = 0;\n\n  if((r_sstatus() & SSTATUS_SPP) != 0)\n    panic(\"usertrap: not from user mode\");\n\n  // send interrupts and exceptions to kerneltrap(),\n  // since we're now in the kernel.\n  w_stvec((uint64)kernelvec);\n\n  struct proc *p = myproc();\n  \n  // save user program counter.\n  p->trapframe->epc = r_sepc();\n  \n  if(r_scause() == 8){\n    // system call\n\n    if(killed(p))\n      exit(-1);\n\n    // sepc points to the ecall instruction,\n    // but we want to return to the next instruction.\n    p->trapframe->epc += 4;\n\n    // an interrupt will change sepc, scause, and sstatus,\n    // so enable only now that we're done with those registers.\n    intr_on();\n\n    syscall();\n  } else if((which_dev = devintr()) != 0){\n    // ok\n  } else {\n    printf(\"usertrap(): unexpected scause %p pid=%d\\n\", r_scause(), p->pid);\n    printf(\"            sepc=%p stval=%p\\n\", r_sepc(), r_stval());\n    setkilled(p);\n  }\n\n  if(killed(p))\n    exit(-1);\n\n  // give up the CPU if this is a timer interrupt.\n  if(which_dev == 2)\n    yield();\n\n  usertrapret();\n}\n\n//\n// return to user space\n//",
+          "location": {
+            "path": "kernel/trap.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "usertrap",
+            "end_line": 88,
+            "function": "usertrap",
+            "start_line": 36
+          },
+          "scores": {
+            "cosine_similarity": 0.8671078602735929
+          },
+          "rank": 3
+        },
+        {
+          "id": "a5e91f3a10da6f2a9cc3a0c1ba5b73f385430bd9070778f7276a2c4b312929ff",
+          "text": "There are three kinds of event which cause the CPU to set aside ordinary execution of instructions and force a transfer of control to special code that handles the event. One situation is a system call, when a user program executes the ecall instruction to ask the kernel to do something for it. Another situation is an exception: an instruction (user or kernel) does something illegal, such as divide by zero or use an invalid virtual address. The third situation is a device interrupt, when a device signals that it needs attention, for example when the disk hardware finishes a read or write request. This book uses trap as a generic term for these situations. Typically whatever code was execut- ing at the time of the trap will later need to resume, and shouldn’t need to be aware that anything special happened. That is, we often want traps to be transparent; this is particularly important for device interrupts, which the interrupted code typically doesn’t expect. The usual sequence is that a trap forces a transfer of control into the kernel;",
+          "location": {
+            "page": 43,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Chapter 4",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "43",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8620564423765887
+          },
+          "rank": 4
+        },
+        {
+          "id": "398c4605b238bffbb32c55cc8da45361b2eb451e1aceee6b2b3287dc07c1d0c5",
+          "text": "Xv6 handles traps differently depending on whether the trap occurs while executing in the kernel or in user code. Here is the story for traps from user code; Section 4.5 describes traps from kernel code. A trap may occur while executing in user space if the user program makes a system call (ecall instruction), or does something illegal, or if a device interrupts. The high-level path of a trap from user space is uservec (kernel/trampoline.S:21), then usertrap (kernel/trap.c:37); and when re- turning, usertrapret (kernel/trap.c:90) and then userret (kernel/trampoline.S:101). A major constraint on the design of xv6’s trap handling is the fact that the RISC-V hardware does not switch page tables when it forces a trap. This means that the trap handler address in stvec must have a valid mapping in the user page table, since that’s the page table in force when the trap handling code starts executing. Furthermore, xv6’s trap handling code needs to switch to the kernel page table; in order to be able to continue executing after that switch, the kernel page table must also have a",
+          "location": {
+            "page": 45,
+            "part": 4,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from user space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "45",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8612389481806143
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 618.0099999983213,
+      "reranker_ms": 0.021100000594742596
+    },
+    {
+      "case_id": "fact-usertrap-epc",
+      "strategy": "hybrid",
+      "rerank": false,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "results": [
+        {
+          "id": "701223840b7bcf1ab3ee451b4a5cd90832e843757deca61f1444d71dcc20e722",
+          "text": "void\nusertrap(void)\n{\n  int which_dev = 0;\n\n  if((r_sstatus() & SSTATUS_SPP) != 0)\n    panic(\"usertrap: not from user mode\");\n\n  // send interrupts and exceptions to kerneltrap(),\n  // since we're now in the kernel.\n  w_stvec((uint64)kernelvec);\n\n  struct proc *p = myproc();\n  \n  // save user program counter.\n  p->trapframe->epc = r_sepc();\n  \n  if(r_scause() == 8){\n    // system call\n\n    if(killed(p))\n      exit(-1);\n\n    // sepc points to the ecall instruction,\n    // but we want to return to the next instruction.\n    p->trapframe->epc += 4;\n\n    // an interrupt will change sepc, scause, and sstatus,\n    // so enable only now that we're done with those registers.\n    intr_on();\n\n    syscall();\n  } else if((which_dev = devintr()) != 0){\n    // ok\n  } else {\n    printf(\"usertrap(): unexpected scause %p pid=%d\\n\", r_scause(), p->pid);\n    printf(\"            sepc=%p stval=%p\\n\", r_sepc(), r_stval());\n    setkilled(p);\n  }\n\n  if(killed(p))\n    exit(-1);\n\n  // give up the CPU if this is a timer interrupt.\n  if(which_dev == 2)\n    yield();\n\n  usertrapret();\n}\n\n//\n// return to user space\n//",
+          "location": {
+            "path": "kernel/trap.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "usertrap",
+            "end_line": 88,
+            "function": "usertrap",
+            "start_line": 36
+          },
+          "scores": {
+            "cosine_similarity": 0.8671078602735929,
+            "bm25": 26.56904904633692,
+            "rrf": 0.032266458495966696
+          },
+          "rank": 1
+        },
+        {
+          "id": "2e4f92d7c9adfcc800bbf0384aa0f66c126616ff42b9150a72d4bb3d5a052803",
+          "text": "of the usertrap function, and the address of the kernel page table. uservec retrieves these values, switches satp to the kernel page table, and calls usertrap. The job of usertrap is to determine the cause of the trap, process it, and return (kernel/- trap.c:37). It first changes stvec so that a trap while in the kernel will be handled by kernelvec rather than uservec. It saves the sepc register (the saved user program counter), because usertrap might call yield to switch to another process’s kernel thread, and that process might return to user space, in the process of which it will modify sepc. If the trap is a system call, usertrap calls syscall to handle it; if a device interrupt, devintr; otherwise it’s an ex- ception, and the kernel kills the faulting process. The system call path adds four to the saved user program counter because RISC-V, in the case of a system call, leaves the program pointer pointing to the ecall instruction but user code needs to resume executing at the subsequent instruction. On the way out, usertrap checks",
+          "location": {
+            "page": 46,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from user space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "46",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8717507123947144,
+            "bm25": 13.986245950836452,
+            "rrf": 0.031099324975891997
+          },
+          "rank": 2
+        },
+        {
+          "id": "845a66db6dd1ec423d981156b58fc520a1039c476aaa71107511c435dc463872",
+          "text": "void\nusertrapret(void)\n{\n  struct proc *p = myproc();\n\n  // we're about to switch the destination of traps from\n  // kerneltrap() to usertrap(), so turn off interrupts until\n  // we're back in user space, where usertrap() is correct.\n  intr_off();\n\n  // send syscalls, interrupts, and exceptions to uservec in trampoline.S\n  uint64 trampoline_uservec = TRAMPOLINE + (uservec - trampoline);\n  w_stvec(trampoline_uservec);\n\n  // set up trapframe values that uservec will need when\n  // the process next traps into the kernel.\n  p->trapframe->kernel_satp = r_satp();         // kernel page table\n  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack\n  p->trapframe->kernel_trap = (uint64)usertrap;\n  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()\n\n  // set up the registers that trampoline.S's sret will use\n  // to get to user space.\n  \n  // set S Previous Privilege mode to User.\n  unsigned long x = r_sstatus();\n  x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode\n  x |= SSTATUS_SPIE; // enable interrupts in user mode\n  w_sstatus(x);\n\n  // set S Exception Program Counter to the saved user pc.\n  w_sepc(p->trapframe->epc);\n\n  // tell trampoline.S the user page table to switch to.\n  uint64 satp = MAKE_SATP(p->pagetable);\n\n  // jump to userret in trampoline.S at the top of memory, which \n  // switches to the user page table, restores user registers,\n  // and switches to user mode with sret.\n  uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);\n  ((void (*)(uint64))trampoline_userret)(satp);\n}\n\n// interrupts and exceptions from kernel code go here via kernelvec,\n// on whatever the current kernel stack is.",
+          "location": {
+            "path": "kernel/trap.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "usertrapret",
+            "end_line": 133,
+            "function": "usertrapret",
+            "start_line": 89
+          },
+          "scores": {
+            "cosine_similarity": 0.8565983261705458,
+            "bm25": 19.707355488035684,
+            "rrf": 0.030158730158730156
+          },
+          "rank": 3
+        },
+        {
+          "id": "0359dd2218372f8a31d6f819d084ddfabdcccf218649d425f557898cc25bebf7",
+          "text": "Chapter 2 ended with initcode.S invoking the exec system call (user/initcode.S:11). Let’s look at how the user call makes its way to the exec system call’s implementation in the kernel. initcode.S places the arguments for exec in registers a0 and a1, and puts the system call number in a7. System call numbers match the entries in the syscalls array, a table of function pointers (kernel/syscall.c:107). The ecall instruction traps into the kernel and causes uservec, usertrap, and then syscall to execute, as we saw above. syscall (kernel/syscall.c:132) retrieves the system call number from the saved a7 in the trapframe and uses it to index into syscalls. For the first system call, a7 contains SYS_exec (ker- nel/syscall.h:8), resulting in a call to the system call implementation function sys_exec. When sys_exec returns, syscall records its return value in p->trapframe->a0. This will cause the original user-space call to exec() to return that value, since the C calling convention on RISC-V places return values in a0. System calls conventionally return negative numbers to indicate errors, and zero or positive numbers for success. If the",
+          "location": {
+            "page": 47,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "4.3    Code: Calling system calls",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "47",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8596077817561565,
+            "bm25": 14.733978593923196,
+            "rrf": 0.029850746268656716
+          },
+          "rank": 4
+        },
+        {
+          "id": "bfc341bb8237ecf2b35e9309cc85e5b2bbc77d37abe8c3d0020208ec55cff0ee",
+          "text": "ECALL generates a different exception for each originating privilege mode so that environment call exceptions can be selectively delegated. A typical use case for Unix-like operating systems is to delegate to S-mode the environment-call-from-U-mode exception but not the others.\n\nThe EBREAK instruction is used by debuggers to cause control to be transferred back to a debug- ging environment. It generates a breakpoint exception and performs no other operation.\n\nAs described in the “C” Standard Extension for Compressed Instructions in Volume I of this manual, the C.EBREAK instruction performs the same operation as the EBREAK instruction.\n\nECALL and EBREAK cause the receiving privilege mode’s epc register to be set to the address of the ECALL or EBREAK instruction itself, not the address of the following instruction. As ECALL and EBREAK cause synchronous exceptions, they are not considered to retire, and should not increment the minstret CSR.\n\n3.3.2 Trap-Return Instructions\n\nInstructions to return from trap are encoded under the PRIV minor opcode.",
+          "location": {
+            "page": 60,
+            "part": 2,
+            "path": "riscv-privileged-20211203.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Trap-Return Instructions",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "46",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8519723415374756,
+            "bm25": 19.838994411286432,
+            "rrf": 0.02946236559139785
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 787.9623000044376,
+      "reranker_ms": 0.011600001016631722
+    },
+    {
+      "case_id": "fact-usertrap-epc",
+      "strategy": "hybrid",
+      "rerank": true,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575
+      },
+      "results": [
+        {
+          "id": "2e4f92d7c9adfcc800bbf0384aa0f66c126616ff42b9150a72d4bb3d5a052803",
+          "text": "of the usertrap function, and the address of the kernel page table. uservec retrieves these values, switches satp to the kernel page table, and calls usertrap. The job of usertrap is to determine the cause of the trap, process it, and return (kernel/- trap.c:37). It first changes stvec so that a trap while in the kernel will be handled by kernelvec rather than uservec. It saves the sepc register (the saved user program counter), because usertrap might call yield to switch to another process’s kernel thread, and that process might return to user space, in the process of which it will modify sepc. If the trap is a system call, usertrap calls syscall to handle it; if a device interrupt, devintr; otherwise it’s an ex- ception, and the kernel kills the faulting process. The system call path adds four to the saved user program counter because RISC-V, in the case of a system call, leaves the program pointer pointing to the ecall instruction but user code needs to resume executing at the subsequent instruction. On the way out, usertrap checks",
+          "location": {
+            "page": 46,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from user space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "46",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8717507123947144,
+            "bm25": 13.986245950836452,
+            "rrf": 0.031099324975891997,
+            "cross_encoder": 0.9647165536880493
+          },
+          "rank": 1
+        },
+        {
+          "id": "701223840b7bcf1ab3ee451b4a5cd90832e843757deca61f1444d71dcc20e722",
+          "text": "void\nusertrap(void)\n{\n  int which_dev = 0;\n\n  if((r_sstatus() & SSTATUS_SPP) != 0)\n    panic(\"usertrap: not from user mode\");\n\n  // send interrupts and exceptions to kerneltrap(),\n  // since we're now in the kernel.\n  w_stvec((uint64)kernelvec);\n\n  struct proc *p = myproc();\n  \n  // save user program counter.\n  p->trapframe->epc = r_sepc();\n  \n  if(r_scause() == 8){\n    // system call\n\n    if(killed(p))\n      exit(-1);\n\n    // sepc points to the ecall instruction,\n    // but we want to return to the next instruction.\n    p->trapframe->epc += 4;\n\n    // an interrupt will change sepc, scause, and sstatus,\n    // so enable only now that we're done with those registers.\n    intr_on();\n\n    syscall();\n  } else if((which_dev = devintr()) != 0){\n    // ok\n  } else {\n    printf(\"usertrap(): unexpected scause %p pid=%d\\n\", r_scause(), p->pid);\n    printf(\"            sepc=%p stval=%p\\n\", r_sepc(), r_stval());\n    setkilled(p);\n  }\n\n  if(killed(p))\n    exit(-1);\n\n  // give up the CPU if this is a timer interrupt.\n  if(which_dev == 2)\n    yield();\n\n  usertrapret();\n}\n\n//\n// return to user space\n//",
+          "location": {
+            "path": "kernel/trap.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "usertrap",
+            "end_line": 88,
+            "function": "usertrap",
+            "start_line": 36
+          },
+          "scores": {
+            "cosine_similarity": 0.8671078602735929,
+            "bm25": 26.56904904633692,
+            "rrf": 0.032266458495966696,
+            "cross_encoder": 0.6679511070251465
+          },
+          "rank": 2
+        },
+        {
+          "id": "bfc341bb8237ecf2b35e9309cc85e5b2bbc77d37abe8c3d0020208ec55cff0ee",
+          "text": "ECALL generates a different exception for each originating privilege mode so that environment call exceptions can be selectively delegated. A typical use case for Unix-like operating systems is to delegate to S-mode the environment-call-from-U-mode exception but not the others.\n\nThe EBREAK instruction is used by debuggers to cause control to be transferred back to a debug- ging environment. It generates a breakpoint exception and performs no other operation.\n\nAs described in the “C” Standard Extension for Compressed Instructions in Volume I of this manual, the C.EBREAK instruction performs the same operation as the EBREAK instruction.\n\nECALL and EBREAK cause the receiving privilege mode’s epc register to be set to the address of the ECALL or EBREAK instruction itself, not the address of the following instruction. As ECALL and EBREAK cause synchronous exceptions, they are not considered to retire, and should not increment the minstret CSR.\n\n3.3.2 Trap-Return Instructions\n\nInstructions to return from trap are encoded under the PRIV minor opcode.",
+          "location": {
+            "page": 60,
+            "part": 2,
+            "path": "riscv-privileged-20211203.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Trap-Return Instructions",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "46",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8519723415374756,
+            "bm25": 19.838994411286432,
+            "rrf": 0.02946236559139785,
+            "cross_encoder": 0.32705801725387573
+          },
+          "rank": 3
+        },
+        {
+          "id": "0359dd2218372f8a31d6f819d084ddfabdcccf218649d425f557898cc25bebf7",
+          "text": "Chapter 2 ended with initcode.S invoking the exec system call (user/initcode.S:11). Let’s look at how the user call makes its way to the exec system call’s implementation in the kernel. initcode.S places the arguments for exec in registers a0 and a1, and puts the system call number in a7. System call numbers match the entries in the syscalls array, a table of function pointers (kernel/syscall.c:107). The ecall instruction traps into the kernel and causes uservec, usertrap, and then syscall to execute, as we saw above. syscall (kernel/syscall.c:132) retrieves the system call number from the saved a7 in the trapframe and uses it to index into syscalls. For the first system call, a7 contains SYS_exec (ker- nel/syscall.h:8), resulting in a call to the system call implementation function sys_exec. When sys_exec returns, syscall records its return value in p->trapframe->a0. This will cause the original user-space call to exec() to return that value, since the C calling convention on RISC-V places return values in a0. System calls conventionally return negative numbers to indicate errors, and zero or positive numbers for success. If the",
+          "location": {
+            "page": 47,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "4.3    Code: Calling system calls",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "47",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8596077817561565,
+            "bm25": 14.733978593923196,
+            "rrf": 0.029850746268656716,
+            "cross_encoder": 0.3069099187850952
+          },
+          "rank": 4
+        },
+        {
+          "id": "845a66db6dd1ec423d981156b58fc520a1039c476aaa71107511c435dc463872",
+          "text": "void\nusertrapret(void)\n{\n  struct proc *p = myproc();\n\n  // we're about to switch the destination of traps from\n  // kerneltrap() to usertrap(), so turn off interrupts until\n  // we're back in user space, where usertrap() is correct.\n  intr_off();\n\n  // send syscalls, interrupts, and exceptions to uservec in trampoline.S\n  uint64 trampoline_uservec = TRAMPOLINE + (uservec - trampoline);\n  w_stvec(trampoline_uservec);\n\n  // set up trapframe values that uservec will need when\n  // the process next traps into the kernel.\n  p->trapframe->kernel_satp = r_satp();         // kernel page table\n  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack\n  p->trapframe->kernel_trap = (uint64)usertrap;\n  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()\n\n  // set up the registers that trampoline.S's sret will use\n  // to get to user space.\n  \n  // set S Previous Privilege mode to User.\n  unsigned long x = r_sstatus();\n  x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode\n  x |= SSTATUS_SPIE; // enable interrupts in user mode\n  w_sstatus(x);\n\n  // set S Exception Program Counter to the saved user pc.\n  w_sepc(p->trapframe->epc);\n\n  // tell trampoline.S the user page table to switch to.\n  uint64 satp = MAKE_SATP(p->pagetable);\n\n  // jump to userret in trampoline.S at the top of memory, which \n  // switches to the user page table, restores user registers,\n  // and switches to user mode with sret.\n  uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);\n  ((void (*)(uint64))trampoline_userret)(satp);\n}\n\n// interrupts and exceptions from kernel code go here via kernelvec,\n// on whatever the current kernel stack is.",
+          "location": {
+            "path": "kernel/trap.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "usertrapret",
+            "end_line": 133,
+            "function": "usertrapret",
+            "start_line": 89
+          },
+          "scores": {
+            "cosine_similarity": 0.8565983261705458,
+            "bm25": 19.707355488035684,
+            "rrf": 0.030158730158730156,
+            "cross_encoder": 0.05662600323557854
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 1122.3958999980823,
+      "reranker_ms": 7404.594600004202
+    },
+    {
+      "case_id": "loc-scheduler",
+      "strategy": "dense",
+      "rerank": false,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "results": [
+        {
+          "id": "01f7becf0ea54979c5dff39f008c1166f686de690da5016bcd19ea3564c579ff",
+          "text": "void\nscheduler(void)\n{\n  struct proc *p;\n  struct cpu *c = mycpu();\n  \n  c->proc = 0;\n  for(;;){\n    // Avoid deadlock by ensuring that devices can interrupt.\n    intr_on();\n\n    for(p = proc; p < &proc[NPROC]; p++) {\n      acquire(&p->lock);\n      if(p->state == RUNNABLE) {\n        // Switch to chosen process.  It is the process's job\n        // to release its lock and then reacquire it\n        // before jumping back to us.\n        p->state = RUNNING;\n        c->proc = p;\n        swtch(&c->context, &p->context);\n\n        // Process is done running for now.\n        // It should have changed its p->state before coming back.\n        c->proc = 0;\n      }\n      release(&p->lock);\n    }\n  }\n}\n\n// Switch to scheduler.  Must hold only p->lock\n// and have changed proc->state. Saves and restores\n// intena because intena is a property of this\n// kernel thread, not this CPU. It should\n// be proc->intena and proc->noff, but that would\n// break in the few places where a lock is held but\n// there's no process.",
+          "location": {
+            "path": "kernel/proc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "scheduler",
+            "end_line": 480,
+            "function": "scheduler",
+            "start_line": 444
+          },
+          "scores": {
+            "cosine_similarity": 0.86678762037828
+          },
+          "rank": 1
+        },
+        {
+          "id": "d0ee6505f09a54a57e32e47f438aaf5d3432ac50d6b559af3aaf81f0abb99f72",
+          "text": "that if a process is RUNNABLE, it must be safe for an idle CPU’s scheduler to run it; this means that p->context must hold the process’s registers (i.e., they are not actually in the real registers), that no CPU is executing on the process’s kernel stack, and that no CPU’s c->proc refers to the process. Observe that these properties are often not true while p->lock is held. Maintaining the above invariants is the reason why xv6 often acquires p->lock in one thread and releases it in another, for example acquiring in yield and releasing in scheduler. Once yield has started to modify a running process’s state to make it RUNNABLE, the lock must remain held until the invariants are restored: the earliest correct release point is after scheduler (running on its own stack) clears c->proc. Similarly, once scheduler starts to convert a RUNNABLE pro- cess to RUNNING, the lock cannot be released until the kernel thread is completely running (after the swtch, for example in yield).\n\n7.4 Code: mycpu and myproc",
+          "location": {
+            "page": 74,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8624075733180315
+          },
+          "rank": 2
+        },
+        {
+          "id": "a8547f64ba6efdecf96835d9ce7968f623f18e4e189eb976e6007f916be68c43",
+          "text": "struct cmd*\nparseredirs(struct cmd *cmd, char **ps, char *es)\n{\n  int tok;\n  char *q, *eq;\n\n  while(peek(ps, es, \"<>\")){\n    tok = gettoken(ps, es, 0, 0);\n    if(gettoken(ps, es, &q, &eq) != 'a')\n      panic(\"missing file for redirection\");\n    switch(tok){\n    case '<':\n      cmd = redircmd(cmd, q, eq, O_RDONLY, 0);\n      break;\n    case '>':\n      cmd = redircmd(cmd, q, eq, O_WRONLY|O_CREATE|O_TRUNC, 1);\n      break;\n    case '+':  // >>\n      cmd = redircmd(cmd, q, eq, O_WRONLY|O_CREATE, 1);\n      break;\n    }\n  }\n  return cmd;\n}\n",
+          "location": {
+            "path": "user/sh.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "parseredirs",
+            "end_line": 399,
+            "function": "parseredirs",
+            "start_line": 375
+          },
+          "scores": {
+            "cosine_similarity": 0.8579033357529873
+          },
+          "rank": 3
+        },
+        {
+          "id": "c8ed9a2cc3efbf6dde42ba0c231be112c951c85bcc0d2a25d7b4459a7397f5ba",
+          "text": "“returns” to the start of that function. forkret exists to release the p->lock; otherwise, since the new process needs to return to user space as if returning from fork, it could instead start at usertrapret. scheduler (kernel/proc.c:445) runs a loop: find a process to run, run it until it yields, repeat. The scheduler loops over the process table looking for a runnable process, one that has p->state ==RUNNABLE . Once it finds a process, it sets the per-CPU current process variable c->proc, marks the process as RUNNING, and then calls swtch to start running it (kernel/proc.c:458-463). One way to think about the structure of the scheduling code is that it enforces a set of invariants about each process, and holds p->lock whenever those invariants are not true. One invariant is that if a process is RUNNING, a timer interrupt’s yield must be able to safely switch away from the process; this means that the CPU registers must hold the process’s register values (i.e. swtch hasn’t moved them to a context), and c->proc must refer to the process. Another invariant is",
+          "location": {
+            "page": 74,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8575367416419556
+          },
+          "rank": 4
+        },
+        {
+          "id": "3bb78797c068b8eb53fa231496e9e1668711c97dd1211eb19d7350d6e95d1216",
+          "text": "#define O_RDONLY  0x000\n#define O_WRONLY  0x001\n#define O_RDWR    0x002\n#define O_CREATE  0x200\n#define O_TRUNC   0x400",
+          "location": {
+            "path": "kernel/fcntl.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 5,
+            "function": "",
+            "start_line": 1
+          },
+          "scores": {
+            "cosine_similarity": 0.8521201698708448
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 727.3031000004266,
+      "reranker_ms": 0.025699999241624027
+    },
+    {
+      "case_id": "loc-scheduler",
+      "strategy": "hybrid",
+      "rerank": false,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575
+      },
+      "results": [
+        {
+          "id": "d0ee6505f09a54a57e32e47f438aaf5d3432ac50d6b559af3aaf81f0abb99f72",
+          "text": "that if a process is RUNNABLE, it must be safe for an idle CPU’s scheduler to run it; this means that p->context must hold the process’s registers (i.e., they are not actually in the real registers), that no CPU is executing on the process’s kernel stack, and that no CPU’s c->proc refers to the process. Observe that these properties are often not true while p->lock is held. Maintaining the above invariants is the reason why xv6 often acquires p->lock in one thread and releases it in another, for example acquiring in yield and releasing in scheduler. Once yield has started to modify a running process’s state to make it RUNNABLE, the lock must remain held until the invariants are restored: the earliest correct release point is after scheduler (running on its own stack) clears c->proc. Similarly, once scheduler starts to convert a RUNNABLE pro- cess to RUNNING, the lock cannot be released until the kernel thread is completely running (after the swtch, for example in yield).\n\n7.4 Code: mycpu and myproc",
+          "location": {
+            "page": 74,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8624075733180315,
+            "bm25": 13.618668697302796,
+            "rrf": 0.03252247488101534
+          },
+          "rank": 1
+        },
+        {
+          "id": "01f7becf0ea54979c5dff39f008c1166f686de690da5016bcd19ea3564c579ff",
+          "text": "void\nscheduler(void)\n{\n  struct proc *p;\n  struct cpu *c = mycpu();\n  \n  c->proc = 0;\n  for(;;){\n    // Avoid deadlock by ensuring that devices can interrupt.\n    intr_on();\n\n    for(p = proc; p < &proc[NPROC]; p++) {\n      acquire(&p->lock);\n      if(p->state == RUNNABLE) {\n        // Switch to chosen process.  It is the process's job\n        // to release its lock and then reacquire it\n        // before jumping back to us.\n        p->state = RUNNING;\n        c->proc = p;\n        swtch(&c->context, &p->context);\n\n        // Process is done running for now.\n        // It should have changed its p->state before coming back.\n        c->proc = 0;\n      }\n      release(&p->lock);\n    }\n  }\n}\n\n// Switch to scheduler.  Must hold only p->lock\n// and have changed proc->state. Saves and restores\n// intena because intena is a property of this\n// kernel thread, not this CPU. It should\n// be proc->intena and proc->noff, but that would\n// break in the few places where a lock is held but\n// there's no process.",
+          "location": {
+            "path": "kernel/proc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "scheduler",
+            "end_line": 480,
+            "function": "scheduler",
+            "start_line": 444
+          },
+          "scores": {
+            "cosine_similarity": 0.86678762037828,
+            "bm25": 9.66219793857309,
+            "rrf": 0.030886196246139225
+          },
+          "rank": 2
+        },
+        {
+          "id": "c8ed9a2cc3efbf6dde42ba0c231be112c951c85bcc0d2a25d7b4459a7397f5ba",
+          "text": "“returns” to the start of that function. forkret exists to release the p->lock; otherwise, since the new process needs to return to user space as if returning from fork, it could instead start at usertrapret. scheduler (kernel/proc.c:445) runs a loop: find a process to run, run it until it yields, repeat. The scheduler loops over the process table looking for a runnable process, one that has p->state ==RUNNABLE . Once it finds a process, it sets the per-CPU current process variable c->proc, marks the process as RUNNING, and then calls swtch to start running it (kernel/proc.c:458-463). One way to think about the structure of the scheduling code is that it enforces a set of invariants about each process, and holds p->lock whenever those invariants are not true. One invariant is that if a process is RUNNING, a timer interrupt’s yield must be able to safely switch away from the process; this means that the CPU registers must hold the process’s register values (i.e. swtch hasn’t moved them to a context), and c->proc must refer to the process. Another invariant is",
+          "location": {
+            "page": 74,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8575367416419556,
+            "bm25": 10.341876689516788,
+            "rrf": 0.030776515151515152
+          },
+          "rank": 3
+        },
+        {
+          "id": "ea177b561a56dd3a1d09e5d8053ddeabe157baa98cfc83bd0877e7565d953835",
+          "text": "5.Modify xv6 to use only one context switch when switching from one process’s kernel thread to another, rather than switching through the scheduler thread. The yielding thread will need to select the next thread itself and call swtch. The challenges will be to prevent multiple cores from executing the same thread accidentally; to get the locking right; and to avoid deadlocks.\n\n6.Modify xv6’s scheduler to use the RISC-V WFI (wait for interrupt) instruction when no processes are runnable. Try to ensure that, any time there are runnable processes waiting to run, no cores are pausing in WFI.",
+          "location": {
+            "page": 84,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "7.11    Exercises",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "84",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8420895620424353,
+            "bm25": 13.20109039064075,
+            "rrf": 0.029386529386529386
+          },
+          "rank": 4
+        },
+        {
+          "id": "8385b6394144df3f908229ba9d9de5936fa894762f4d5bdb65f0e43f5c5ab017",
+          "text": "The last section looked at the low-level details of swtch; now let’s take swtch as a given and examine switching from one process’s kernel thread through the scheduler to another process. The scheduler exists in the form of a special thread per CPU, each running the scheduler func- tion. This function is in charge of choosing which process to run next. A process that wants to give up the CPU must acquire its own process lock p->lock, release any other locks it is holding, update its own state (p->state), and then call sched. You can see this sequence in yield (kernel/proc.c:503), sleep and exit. sched double-checks some of those requirements (kernel/proc.c:487-492) and then checks an implication: since a lock is held, interrupts should be disabled. Finally, sched calls swtch to save the current context in p->context and switch to the scheduler context in cpu->context. swtch returns on the scheduler’s stack as though scheduler’s swtch had returned (kernel/proc.c:463). The scheduler continues its for loop, finds a process to run, switches to it, and the cycle repeats. We just saw that xv6",
+          "location": {
+            "page": 73,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "7.3    Code: Scheduling",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "73",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8441253648959025,
+            "bm25": 8.048583811220503,
+            "rrf": 0.027783137179239824
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 854.6761999969021,
+      "reranker_ms": 0.011299998732283711
+    },
+    {
+      "case_id": "loc-scheduler",
+      "strategy": "hybrid",
+      "rerank": true,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "results": [
+        {
+          "id": "01f7becf0ea54979c5dff39f008c1166f686de690da5016bcd19ea3564c579ff",
+          "text": "void\nscheduler(void)\n{\n  struct proc *p;\n  struct cpu *c = mycpu();\n  \n  c->proc = 0;\n  for(;;){\n    // Avoid deadlock by ensuring that devices can interrupt.\n    intr_on();\n\n    for(p = proc; p < &proc[NPROC]; p++) {\n      acquire(&p->lock);\n      if(p->state == RUNNABLE) {\n        // Switch to chosen process.  It is the process's job\n        // to release its lock and then reacquire it\n        // before jumping back to us.\n        p->state = RUNNING;\n        c->proc = p;\n        swtch(&c->context, &p->context);\n\n        // Process is done running for now.\n        // It should have changed its p->state before coming back.\n        c->proc = 0;\n      }\n      release(&p->lock);\n    }\n  }\n}\n\n// Switch to scheduler.  Must hold only p->lock\n// and have changed proc->state. Saves and restores\n// intena because intena is a property of this\n// kernel thread, not this CPU. It should\n// be proc->intena and proc->noff, but that would\n// break in the few places where a lock is held but\n// there's no process.",
+          "location": {
+            "path": "kernel/proc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "scheduler",
+            "end_line": 480,
+            "function": "scheduler",
+            "start_line": 444
+          },
+          "scores": {
+            "cosine_similarity": 0.86678762037828,
+            "bm25": 9.66219793857309,
+            "rrf": 0.030886196246139225,
+            "cross_encoder": 0.971097469329834
+          },
+          "rank": 1
+        },
+        {
+          "id": "c8ed9a2cc3efbf6dde42ba0c231be112c951c85bcc0d2a25d7b4459a7397f5ba",
+          "text": "“returns” to the start of that function. forkret exists to release the p->lock; otherwise, since the new process needs to return to user space as if returning from fork, it could instead start at usertrapret. scheduler (kernel/proc.c:445) runs a loop: find a process to run, run it until it yields, repeat. The scheduler loops over the process table looking for a runnable process, one that has p->state ==RUNNABLE . Once it finds a process, it sets the per-CPU current process variable c->proc, marks the process as RUNNING, and then calls swtch to start running it (kernel/proc.c:458-463). One way to think about the structure of the scheduling code is that it enforces a set of invariants about each process, and holds p->lock whenever those invariants are not true. One invariant is that if a process is RUNNING, a timer interrupt’s yield must be able to safely switch away from the process; this means that the CPU registers must hold the process’s register values (i.e. swtch hasn’t moved them to a context), and c->proc must refer to the process. Another invariant is",
+          "location": {
+            "page": 74,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8575367416419556,
+            "bm25": 10.341876689516788,
+            "rrf": 0.030776515151515152,
+            "cross_encoder": 0.9404541850090027
+          },
+          "rank": 2
+        },
+        {
+          "id": "8385b6394144df3f908229ba9d9de5936fa894762f4d5bdb65f0e43f5c5ab017",
+          "text": "The last section looked at the low-level details of swtch; now let’s take swtch as a given and examine switching from one process’s kernel thread through the scheduler to another process. The scheduler exists in the form of a special thread per CPU, each running the scheduler func- tion. This function is in charge of choosing which process to run next. A process that wants to give up the CPU must acquire its own process lock p->lock, release any other locks it is holding, update its own state (p->state), and then call sched. You can see this sequence in yield (kernel/proc.c:503), sleep and exit. sched double-checks some of those requirements (kernel/proc.c:487-492) and then checks an implication: since a lock is held, interrupts should be disabled. Finally, sched calls swtch to save the current context in p->context and switch to the scheduler context in cpu->context. swtch returns on the scheduler’s stack as though scheduler’s swtch had returned (kernel/proc.c:463). The scheduler continues its for loop, finds a process to run, switches to it, and the cycle repeats. We just saw that xv6",
+          "location": {
+            "page": 73,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "7.3    Code: Scheduling",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "73",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8441253648959025,
+            "bm25": 8.048583811220503,
+            "rrf": 0.027783137179239824,
+            "cross_encoder": 0.8435494899749756
+          },
+          "rank": 3
+        },
+        {
+          "id": "d0ee6505f09a54a57e32e47f438aaf5d3432ac50d6b559af3aaf81f0abb99f72",
+          "text": "that if a process is RUNNABLE, it must be safe for an idle CPU’s scheduler to run it; this means that p->context must hold the process’s registers (i.e., they are not actually in the real registers), that no CPU is executing on the process’s kernel stack, and that no CPU’s c->proc refers to the process. Observe that these properties are often not true while p->lock is held. Maintaining the above invariants is the reason why xv6 often acquires p->lock in one thread and releases it in another, for example acquiring in yield and releasing in scheduler. Once yield has started to modify a running process’s state to make it RUNNABLE, the lock must remain held until the invariants are restored: the earliest correct release point is after scheduler (running on its own stack) clears c->proc. Similarly, once scheduler starts to convert a RUNNABLE pro- cess to RUNNING, the lock cannot be released until the kernel thread is completely running (after the swtch, for example in yield).\n\n7.4 Code: mycpu and myproc",
+          "location": {
+            "page": 74,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8624075733180315,
+            "bm25": 13.618668697302796,
+            "rrf": 0.03252247488101534,
+            "cross_encoder": 0.7389013767242432
+          },
+          "rank": 4
+        },
+        {
+          "id": "ea177b561a56dd3a1d09e5d8053ddeabe157baa98cfc83bd0877e7565d953835",
+          "text": "5.Modify xv6 to use only one context switch when switching from one process’s kernel thread to another, rather than switching through the scheduler thread. The yielding thread will need to select the next thread itself and call swtch. The challenges will be to prevent multiple cores from executing the same thread accidentally; to get the locking right; and to avoid deadlocks.\n\n6.Modify xv6’s scheduler to use the RISC-V WFI (wait for interrupt) instruction when no processes are runnable. Try to ensure that, any time there are runnable processes waiting to run, no cores are pausing in WFI.",
+          "location": {
+            "page": 84,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "7.11    Exercises",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "84",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.8420895620424353,
+            "bm25": 13.20109039064075,
+            "rrf": 0.029386529386529386,
+            "cross_encoder": 0.5723493695259094
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 867.2006000051624,
+      "reranker_ms": 7233.51819999516
+    },
+    {
+      "case_id": "out-cuda",
+      "strategy": "dense",
+      "rerank": false,
+      "metrics": {
+        "recall": null,
+        "mrr": null,
+        "ndcg": null
+      },
+      "results": [
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          },
+          "scores": {
+            "cosine_similarity": 0.8505696921521991
+          },
+          "rank": 1
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          },
+          "scores": {
+            "cosine_similarity": 0.8439155910065433
+          },
+          "rank": 2
+        },
+        {
+          "id": "933c6bdf2af050a0e89d681c7326ce4ce1982c18e7ebf0b6b9949487d6550728",
+          "text": "// Physical memory layout\n\n// qemu -machine virt is set up like this,\n// based on qemu's hw/riscv/virt.c:\n//\n// 00001000 -- boot ROM, provided by qemu\n// 02000000 -- CLINT\n// 0C000000 -- PLIC\n// 10000000 -- uart0 \n// 10001000 -- virtio disk \n// 80000000 -- boot ROM jumps here in machine mode\n//             -kernel loads the kernel here\n// unused RAM after 80000000.\n\n// the kernel uses physical memory thus:\n// 80000000 -- entry.S, then kernel text and data\n// end -- start of kernel page allocation area\n// PHYSTOP -- end RAM used by the kernel\n\n// qemu puts UART registers here in physical memory.\n#define UART0 0x10000000L\n#define UART0_IRQ 10\n\n// virtio mmio interface\n#define VIRTIO0 0x10001000\n#define VIRTIO0_IRQ 1\n\n// core local interruptor (CLINT), which contains the timer.\n#define CLINT 0x2000000L\n#define CLINT_MTIMECMP(hartid) (CLINT + 0x4000 + 8*(hartid))\n#define CLINT_MTIME (CLINT + 0xBFF8) // cycles since boot.\n\n// qemu puts platform-level interrupt controller (PLIC) here.\n#define PLIC 0x0c000000L\n#define PLIC_PRIORITY (PLIC + 0x0)\n#define PLIC_PENDING (PLIC + 0x1000)\n#define PLIC_MENABLE(hart) (PLIC + 0x2000 + (hart)*0x100)\n#define PLIC_SENABLE(hart) (PLIC + 0x2080 + (hart)*0x100)\n#define PLIC_MPRIORITY(hart) (PLIC + 0x200000 + (hart)*0x2000)\n#define PLIC_SPRIORITY(hart) (PLIC + 0x201000 + (hart)*0x2000)\n#define PLIC_MCLAIM(hart) (PLIC + 0x200004 + (hart)*0x2000)\n#define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart)*0x2000)\n\n// the kernel expects there to be RAM\n// for use by the kernel and user pages\n// from physical address 0x80000000 to PHYSTOP.\n#define KERNBASE 0x80000000L\n#define PHYSTOP (KERNBASE + 128*1024*1024)\n\n// map the trampoline page to the highest address,\n// in both user and kernel space.\n#define TRAMPOLINE (MAXVA - PGSIZE)\n\n// map kernel stacks beneath the trampoline,\n// each surrounded by invalid guard pages.\n#define KSTACK(p) (TRAMPOLINE - ((p)+1)* 2*PGSIZE)\n\n// User memory layout.\n// Address zero first:\n//   text\n//   original data and bss\n//   fixed-size stack\n//   expandable heap\n//   ...\n//   TRAPFRAME (p->trapframe, used by the trampoline)\n//   TRAMPOLINE (the same page as in the kernel)\n#define TRAPFRAME (TRAMPOLINE - PGSIZE)",
+          "location": {
+            "path": "kernel/memlayout.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 67,
+            "function": "",
+            "start_line": 1
+          },
+          "scores": {
+            "cosine_similarity": 0.8418683002152085
+          },
+          "rank": 3
+        },
+        {
+          "id": "c839acd031299005cfe318c047e9fbd775c9b2d80cbce037fd611abe1909a73e",
+          "text": "//\n// virtio device definitions.\n// for both the mmio interface, and virtio descriptors.\n// only tested with qemu.\n//\n// the virtio spec:\n// https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.pdf\n//\n\n// virtio mmio control registers, mapped starting at 0x10001000.\n// from qemu virtio_mmio.h\n#define VIRTIO_MMIO_MAGIC_VALUE\t\t0x000 // 0x74726976\n#define VIRTIO_MMIO_VERSION\t\t0x004 // version; should be 2\n#define VIRTIO_MMIO_DEVICE_ID\t\t0x008 // device type; 1 is net, 2 is disk\n#define VIRTIO_MMIO_VENDOR_ID\t\t0x00c // 0x554d4551\n#define VIRTIO_MMIO_DEVICE_FEATURES\t0x010\n#define VIRTIO_MMIO_DRIVER_FEATURES\t0x020\n#define VIRTIO_MMIO_QUEUE_SEL\t\t0x030 // select queue, write-only\n#define VIRTIO_MMIO_QUEUE_NUM_MAX\t0x034 // max size of current queue, read-only\n#define VIRTIO_MMIO_QUEUE_NUM\t\t0x038 // size of current queue, write-only\n#define VIRTIO_MMIO_QUEUE_READY\t\t0x044 // ready bit\n#define VIRTIO_MMIO_QUEUE_NOTIFY\t0x050 // write-only\n#define VIRTIO_MMIO_INTERRUPT_STATUS\t0x060 // read-only\n#define VIRTIO_MMIO_INTERRUPT_ACK\t0x064 // write-only\n#define VIRTIO_MMIO_STATUS\t\t0x070 // read/write\n#define VIRTIO_MMIO_QUEUE_DESC_LOW\t0x080 // physical address for descriptor table, write-only\n#define VIRTIO_MMIO_QUEUE_DESC_HIGH\t0x084\n#define VIRTIO_MMIO_DRIVER_DESC_LOW\t0x090 // physical address for available ring, write-only\n#define VIRTIO_MMIO_DRIVER_DESC_HIGH\t0x094\n#define VIRTIO_MMIO_DEVICE_DESC_LOW\t0x0a0 // physical address for used ring, write-only\n#define VIRTIO_MMIO_DEVICE_DESC_HIGH\t0x0a4\n\n// status register bits, from qemu virtio_config.h\n#define VIRTIO_CONFIG_S_ACKNOWLEDGE\t1\n#define VIRTIO_CONFIG_S_DRIVER\t\t2\n#define VIRTIO_CONFIG_S_DRIVER_OK\t4\n#define VIRTIO_CONFIG_S_FEATURES_OK\t8\n\n// device feature bits\n#define VIRTIO_BLK_F_RO              5\t/* Disk is read-only */\n#define VIRTIO_BLK_F_SCSI            7\t/* Supports scsi command passthru */\n#define VIRTIO_BLK_F_CONFIG_WCE     11\t/* Writeback mode available in config */\n#define VIRTIO_BLK_F_MQ             12\t/* support more than one vq */\n#define VIRTIO_F_ANY_LAYOUT         27\n#define VIRTIO_RING_F_INDIRECT_DESC 28\n#define VIRTIO_RING_F_EVENT_IDX     29\n\n// this many virtio descriptors.\n// must be a power of two.\n#define NUM 8\n\n// a single descriptor, from the spec.",
+          "location": {
+            "path": "kernel/virtio.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 52,
+            "function": "",
+            "start_line": 1
+          },
+          "scores": {
+            "cosine_similarity": 0.841055700716038
+          },
+          "rank": 4
+        },
+        {
+          "id": "ee9a8728ec11101accaca2dbbb12b4008b01aebcfde522eaa26ac96514dd0cf5",
+          "text": "Xv6 often needs a pointer to the current process’s proc structure. On a uniprocessor one could have a global variable pointing to the current proc. This doesn’t work on a multi-core machine, since each core executes a different process. The way to solve this problem is to exploit the fact that each core has its own set of registers; we can use one of those registers to help find per-core information. Xv6 maintains a struct cpu for each CPU (kernel/proc.h:22), which records the process cur- rently running on that CPU (if any), saved registers for the CPU’s scheduler thread, and the count of nested spinlocks needed to manage interrupt disabling. The function mycpu (kernel/proc.c:74) returns a pointer to the current CPU’s struct cpu. RISC-V numbers its CPUs, giving each a hartid. Xv6 ensures that each CPU’s hartid is stored in that CPU’s tp register while in the kernel. This allows mycpu to use tp to index an array of cpu structures to find the right one. Ensuring that a CPU’s tp always holds the CPU’s hartid is a little involved.",
+          "location": {
+            "page": 74,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.840038011071802
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 630.0966999988304,
+      "reranker_ms": 0.027999994927085936
+    },
+    {
+      "case_id": "out-cuda",
+      "strategy": "hybrid",
+      "rerank": false,
+      "metrics": {
+        "recall": null,
+        "mrr": null,
+        "ndcg": null
+      },
+      "results": [
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          },
+          "scores": {
+            "cosine_similarity": 0.8505696921521991,
+            "bm25": 3.9628624776661834,
+            "rrf": 0.029726775956284153
+          },
+          "rank": 1
+        },
+        {
+          "id": "d4204e9dba00ac56f591d990f9cf0bcc2061d09302b5fb2af93349bccf0a921a",
+          "text": "\n\n\nLab: Xv6 and Unix utilities\n\n\n\n\n\n\n",
+          "location": {
+            "path": "utils.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 11,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          },
+          "scores": {
+            "cosine_similarity": 0.834947417083538,
+            "bm25": 4.0187348668382965,
+            "rrf": 0.026334026334026334
+          },
+          "rank": 2
+        },
+        {
+          "id": "06ac9ec5607432a3163c3e20488c3549ae2cc629e29816eb1211f88126947226",
+          "text": "processes, they use locks for concurrency control, they implement a file system, etc. This book focuses on these core ideas. Xv6 is implemented as a monolithic kernel, like most Unix operating systems. Thus, the xv6 kernel interface corresponds to the operating system interface, and the kernel implements the com- plete operating system. Since xv6 doesn’t provide many services, its kernel is smaller than some microkernels, but conceptually xv6 is monolithic.\n\n2.4 Code: xv6 organization\n\nThe xv6 kernel source is in the kernel/ sub-directory. The source is divided into files, following a rough notion of modularity; Figure 2.2 lists the files. The inter-module interfaces are defined in",
+          "location": {
+            "page": 25,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: xv6 organization",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "25",
+            "start_line": null
+          },
+          "scores": {
+            "bm25": 4.612837760380397,
+            "rrf": 0.01639344262295082
+          },
+          "rank": 3
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          },
+          "scores": {
+            "cosine_similarity": 0.8439155910065433,
+            "rrf": 0.016129032258064516
+          },
+          "rank": 4
+        },
+        {
+          "id": "97055cf27aa944701f4380b55ca7995b326134a7e1830c3184470aa7c7d9370c",
+          "text": "# Lab: Xv6 and Unix utilities\n\n\n\nThis lab will familiarize you with xv6 and its system calls.\n\n\n",
+          "location": {
+            "path": "utils.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Lab: Xv6 and Unix utilities",
+            "end_line": 19,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 12
+          },
+          "scores": {
+            "bm25": 4.517506747997057,
+            "rrf": 0.016129032258064516
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 853.3800000004703,
+      "reranker_ms": 0.012799995602108538
+    },
+    {
+      "case_id": "out-cuda",
+      "strategy": "hybrid",
+      "rerank": true,
+      "metrics": {
+        "recall": null,
+        "mrr": null,
+        "ndcg": null
+      },
+      "results": [
+        {
+          "id": "ee9a8728ec11101accaca2dbbb12b4008b01aebcfde522eaa26ac96514dd0cf5",
+          "text": "Xv6 often needs a pointer to the current process’s proc structure. On a uniprocessor one could have a global variable pointing to the current proc. This doesn’t work on a multi-core machine, since each core executes a different process. The way to solve this problem is to exploit the fact that each core has its own set of registers; we can use one of those registers to help find per-core information. Xv6 maintains a struct cpu for each CPU (kernel/proc.h:22), which records the process cur- rently running on that CPU (if any), saved registers for the CPU’s scheduler thread, and the count of nested spinlocks needed to manage interrupt disabling. The function mycpu (kernel/proc.c:74) returns a pointer to the current CPU’s struct cpu. RISC-V numbers its CPUs, giving each a hartid. Xv6 ensures that each CPU’s hartid is stored in that CPU’s tp register while in the kernel. This allows mycpu to use tp to index an array of cpu structures to find the right one. Ensuring that a CPU’s tp always holds the CPU’s hartid is a little involved.",
+          "location": {
+            "page": 74,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          },
+          "scores": {
+            "cosine_similarity": 0.840038011071802,
+            "rrf": 0.015384615384615385,
+            "cross_encoder": 0.3599528670310974
+          },
+          "rank": 1
+        },
+        {
+          "id": "8e4a02de12d4dab107f0f1eb5b62d6134f6e4130b99ff794cc491e7f935db1a3",
+          "text": "Xv6 multiplexes by switching each CPU from one process to another in two situations. First, xv6’s sleep and wakeup mechanism switches when a process waits for device or pipe I/O to complete, or waits for a child to exit, or waits in the sleep system call. Second, xv6 periodically forces a switch to cope with processes that compute for long periods without sleeping. This multiplexing creates the illusion that each process has its own CPU, much as xv6 uses the memory allocator and hardware page tables to create the illusion that each process has its own memory. Implementing multiplexing poses a few challenges. First, how to switch from one process to another? Although the idea of context switching is simple, the implementation is some of the most opaque code in xv6. Second, how to force switches in a way that is transparent to user processes? Xv6 uses the standard technique in which a hardware timer’s interrupts drive context switches. Third, all of the CPUs switch among the same shared set of processes, and a locking plan is necessary to avoid",
+          "location": {
+            "page": 71,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Chapter 7",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "71",
+            "start_line": null
+          },
+          "scores": {
+            "bm25": 4.1840017290144,
+            "rrf": 0.014705882352941176,
+            "cross_encoder": 0.25007084012031555
+          },
+          "rank": 2
+        },
+        {
+          "id": "077fdfbf2202aee19355970f1b72b3523f4cbf306a2b814509302824df73f8bd",
+          "text": "void\nmain()\n{\n  if(cpuid() == 0){\n    consoleinit();\n    printfinit();\n    printf(\"\\n\");\n    printf(\"xv6 kernel is booting\\n\");\n    printf(\"\\n\");\n    kinit();         // physical page allocator\n    kvminit();       // create kernel page table\n    kvminithart();   // turn on paging\n    procinit();      // process table\n    trapinit();      // trap vectors\n    trapinithart();  // install kernel trap vector\n    plicinit();      // set up interrupt controller\n    plicinithart();  // ask PLIC for device interrupts\n    binit();         // buffer cache\n    iinit();         // inode table\n    fileinit();      // file table\n    virtio_disk_init(); // emulated hard disk\n    userinit();      // first user process\n    __sync_synchronize();\n    started = 1;\n  } else {\n    while(started == 0)\n      ;\n    __sync_synchronize();\n    printf(\"hart %d starting\\n\", cpuid());\n    kvminithart();    // turn on paging\n    trapinithart();   // install kernel trap vector\n    plicinithart();   // ask PLIC for device interrupts\n  }\n\n  scheduler();        \n}",
+          "location": {
+            "path": "kernel/main.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "main",
+            "end_line": 45,
+            "function": "main",
+            "start_line": 10
+          },
+          "scores": {
+            "cosine_similarity": 0.8394789291049326,
+            "rrf": 0.014925373134328358,
+            "cross_encoder": 0.2479984164237976
+          },
+          "rank": 3
+        },
+        {
+          "id": "da24d20c629eeeaf96a8443b665c61b85afffd84fd09c6bcc404c98b429c3f63",
+          "text": "many Unix operating systems. This chapter also provides an overview of an xv6 process, which is the unit of isolation in xv6, and the creation of the first process when xv6 starts. Xv6 runs on a multi-core1 RISC-V microprocessor, and much of its low-level functionality (for example, its process implementation) is specific to RISC-V. RISC-V is a 64-bit CPU, and xv6 is written in “LP64” C, which means long (L) and pointers (P) in the C programming language are 64 bits, but int is 32-bit. This book assumes the reader has done a bit of machine-level programming on some architecture, and will introduce RISC-V-specific ideas as they come up. A useful reference for RISC-V is “The RISC-V Reader: An Open Architecture Atlas” [15]. The user-level ISA [2] and the privileged architecture [3] are the official specifications. The CPU in a complete computer is surrounded by support hardware, much of it in the form of I/O interfaces. Xv6 is written for the support hardware simulated by qemu’s “-machine virt” option. This includes RAM, a ROM containing boot code, a serial connection",
+          "location": {
+            "page": 21,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Chapter 2",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "21",
+            "start_line": null
+          },
+          "scores": {
+            "bm25": 4.153517390242453,
+            "rrf": 0.014285714285714285,
+            "cross_encoder": 0.030319608747959137
+          },
+          "rank": 4
+        },
+        {
+          "id": "94172464ba575b8abedf8775451a3c4b6eb15b3c3743dcc1fcd3a767ca96d454",
+          "text": "void\nvirtio_disk_init(void)\n{\n  uint32 status = 0;\n\n  initlock(&disk.vdisk_lock, \"virtio_disk\");\n\n  if(*R(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||\n     *R(VIRTIO_MMIO_VERSION) != 2 ||\n     *R(VIRTIO_MMIO_DEVICE_ID) != 2 ||\n     *R(VIRTIO_MMIO_VENDOR_ID) != 0x554d4551){\n    panic(\"could not find virtio disk\");\n  }\n  \n  // reset device\n  *R(VIRTIO_MMIO_STATUS) = status;\n\n  // set ACKNOWLEDGE status bit\n  status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;\n  *R(VIRTIO_MMIO_STATUS) = status;\n\n  // set DRIVER status bit\n  status |= VIRTIO_CONFIG_S_DRIVER;\n  *R(VIRTIO_MMIO_STATUS) = status;\n\n  // negotiate features\n  uint64 features = *R(VIRTIO_MMIO_DEVICE_FEATURES);\n  features &= ~(1 << VIRTIO_BLK_F_RO);\n  features &= ~(1 << VIRTIO_BLK_F_SCSI);\n  features &= ~(1 << VIRTIO_BLK_F_CONFIG_WCE);\n  features &= ~(1 << VIRTIO_BLK_F_MQ);\n  features &= ~(1 << VIRTIO_F_ANY_LAYOUT);\n  features &= ~(1 << VIRTIO_RING_F_EVENT_IDX);\n  features &= ~(1 << VIRTIO_RING_F_INDIRECT_DESC);\n  *R(VIRTIO_MMIO_DRIVER_FEATURES) = features;\n\n  // tell device that feature negotiation is complete.\n  status |= VIRTIO_CONFIG_S_FEATURES_OK;\n  *R(VIRTIO_MMIO_STATUS) = status;\n\n  // re-read status to ensure FEATURES_OK is set.\n  status = *R(VIRTIO_MMIO_STATUS);\n  if(!(status & VIRTIO_CONFIG_S_FEATURES_OK))\n    panic(\"virtio disk FEATURES_OK unset\");\n\n  // initialize queue 0.\n  *R(VIRTIO_MMIO_QUEUE_SEL) = 0;\n\n  // ensure queue 0 is not in use.\n  if(*R(VIRTIO_MMIO_QUEUE_READY))\n    panic(\"virtio disk should not be ready\");\n\n  // check maximum queue size.\n  uint32 max = *R(VIRTIO_MMIO_QUEUE_NUM_MAX);\n  if(max == 0)\n    panic(\"virtio disk has no queue 0\");\n  if(max < NUM)\n    panic(\"virtio disk max queue too short\");\n\n  // allocate and zero queue memory.\n  disk.desc = kalloc();\n  disk.avail = kalloc();\n  disk.used = kalloc();\n  if(!disk.desc || !disk.avail || !disk.used)\n    panic(\"virtio disk kalloc\");\n  memset(disk.desc, 0, PGSIZE);\n  memset(disk.avail, 0, PGSIZE);\n  memset(disk.used, 0, PGSIZE);\n\n  // set queue size.\n  *R(VIRTIO_MMIO_QUEUE_NUM) = NUM;\n\n  // write physical addresses.\n  *R(VIRTIO_MMIO_QUEUE_DESC_LOW) = (uint64)disk.desc;\n  *R(VIRTIO_MMIO_QUEUE_DESC_HIGH) = (uint64)disk.desc >> 32;\n  *R(VIRTIO_MMIO_DRIVER_DESC_LOW) = (uint64)disk.avail;\n  *R(VIRTIO_MMIO_DRIVER_DESC_HIGH) = (uint64)disk.avail >> 32;\n  *R(VIRTIO_MMIO_DEVICE_DESC_LOW) = (uint64)disk.used;\n  *R(VIRTIO_MMIO_DEVICE_DESC_HIGH) = (uint64)disk.used >> 32;\n",
+          "location": {
+            "path": "kernel/virtio_disk.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "virtio_disk_init",
+            "end_line": 140,
+            "function": "virtio_disk_init",
+            "start_line": 61
+          },
+          "scores": {
+            "cosine_similarity": 0.8396462393228722,
+            "rrf": 0.015151515151515152,
+            "cross_encoder": 0.016385124996304512
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 986.429999997199,
+      "reranker_ms": 6934.6034999980475
+    }
+  ],
+  "summary": [
+    {
+      "variant": "dense",
+      "cases": 6,
+      "recall": 0.6,
+      "recall_samples": 5,
+      "mrr": 0.36666666666666664,
+      "mrr_samples": 5,
+      "ndcg": 0.4261859507142915,
+      "ndcg_samples": 5,
+      "retrieval_ms": 1414.3043166659481,
+      "reranker_ms": 0.028816665386936318,
+      "end_to_end_ms": null,
+      "human_score": null,
+      "human_reviewed": 0
+    },
+    {
+      "variant": "hybrid",
+      "cases": 6,
+      "recall": 0.7,
+      "recall_samples": 5,
+      "mrr": 0.55,
+      "mrr_samples": 5,
+      "ndcg": 0.5789995752288097,
+      "ndcg_samples": 5,
+      "retrieval_ms": 739.2659166665302,
+      "reranker_ms": 0.012633333729657656,
+      "end_to_end_ms": null,
+      "human_score": null,
+      "human_reviewed": 0
+    },
+    {
+      "variant": "hybrid_rerank",
+      "cases": 6,
+      "recall": 0.8,
+      "recall_samples": 5,
+      "mrr": 0.6,
+      "mrr_samples": 5,
+      "ndcg": 0.652371901428583,
+      "ndcg_samples": 5,
+      "retrieval_ms": 822.5235000002916,
+      "reranker_ms": 6576.220233332909,
+      "end_to_end_ms": null,
+      "human_score": null,
+      "human_reviewed": 0
+    }
+  ],
+  "dataset_hash": "b0c28a4d0c781a0d656082ef45d0ae1e2e0c9c10bccebe8929ff6c1d9eeccd86",
+  "code_version": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe"
+}

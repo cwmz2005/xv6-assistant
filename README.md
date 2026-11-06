@@ -54,7 +54,7 @@ PDF 共 679 页、1784 个片段：网卡手册 410 页/973 片段，教材 114 
 
 ```powershell
 uv run pytest -q
-uv run python -m backend.evaluate evaluation/annotated.jsonl evaluation/results.json --k 5
+uv run python -m backend.evaluate evaluation/annotated.jsonl evaluation/results.json --k 5 --warmup
 ```
 
 测试集为 JSONL，含 id、question、reference_answer、relevance、type、annotation_status。relevance 为真实 chunk ID 到人工等级的映射。必须人工标注完成并设置 annotation_status=complete 后才能批量评估。
@@ -65,11 +65,17 @@ uv run python -m backend.evaluate evaluation/annotated.jsonl evaluation/results.
 
 evaluation/smoke.source-verified.jsonl 是开发者核对源码的单样例冒烟测试，smoke-results.json 为实际结果，不能视为独立评测或泛化性能结论。首次加载模型包含冷启动耗时，不能直接和热启动对比。
 
-聊天支持 SSE，接口为 POST /api/chat/stream；可选 Search 开关允许生成模型补充一次检索，不引入 Agent。引用绑定证据 ID。已实测生成、39 个流式 token 事件和最终引用。
+聊天支持 SSE，接口为 POST /api/chat/stream；补充搜索开关允许模型按需多轮检索，重复查询复用结果，连续两轮无新增证据时结束。默认不设次数上限，可在问答设置或 tool_call_limit 参数中指定。引用只绑定真实证据；唯一的短 ID 前缀会恢复为完整引用，歧义引用移除。
+
+LLM_MAX_TOKENS 控制统一输出预算，LLM_REASONING_EFFORT 为可选推理强度。本机已验证 low，其他兼容 API 不支持时应留空。生成返回 finish_reason、usage 和 complete 元数据；达到输出上限会明确提示回答未完成，不能作为完整回答计分。
+
+开发集真实对比与失败分析见 evaluation/ANALYSIS.md。六题结果是开发者源码核对集，不是独立人工测试集。四方案生成的八条回答保存于 development-generation-results.json，未填人工准确率，且旧结果存在截断和短引用未关联的问题，保留原样供分析。
+
+实验面板提供汇总表与逐题人工评分；API POST /api/evaluation/{id}/reviews 保存核验人、0–1 分数和依据。检索相似度绝不自动转为答案评分。会话生成由 PostgreSQL advisory lock 串行化，同一会话并发生成返回 409，消息顺序有数据库唯一约束。
 
 ## 当前限制
 
-开发尚未完全验收。待完善独立人工标注测试集、回答人工评分与分析、并发消息约束和认证。前端通过 React.lazy 拆分消息渲染、语法高亮、知识库与评估面板，构建不再出现大于 500 kB 的 chunk 提示。仅用于本机开发；长时间导入和评估目前为同步接口。
+开发尚未完全验收。仍需扩充独立人工标注测试集并实际完成人工评分；当前只有明确标注来源的开发验证结果。认证和长任务进度可作为后续扩展。前端通过 React.lazy 拆分消息渲染、语法高亮、知识库与评估面板，构建不再出现大于 500 kB 的 chunk 提示。仅用于本机开发；长时间导入和评估目前为同步接口。
 
 ## 浏览器验收
 

@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     llm_base_url: str = ""
     llm_api_key: str = ""
     llm_model: str = ""
+    llm_max_tokens: int = 2048
+    llm_reasoning_effort: str | None = None
     embedding_model: str = "intfloat/multilingual-e5-small"
     reranker_model: str = "BAAI/bge-reranker-base"
     default_code_version: str = 'dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe'

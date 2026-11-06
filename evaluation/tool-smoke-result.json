@@ -1,0 +1,165 @@
+{
+  "question": "fork and uvmcopy tool smoke",
+  "answer": "fork 与 uvmcopy 的关系：fork 在创建子进程时调用 uvmcopy 复制父进程的用户内存。\n\n- 在 `fork()` 中，分配子进程后通过 `uvmcopy(p->pagetable, np->pagetable, p->sz)` 把父进程页表内容复制到子进程页表；若失败则 `freeproc` 回滚 [d9a559d224e7058b5723049ad7a6a1fd1bb7f198beafa68d7c1f82bad8df766f]。\n- `uvmcopy()` 逐页遍历父进程地址空间，为每一页 `kalloc()` 新物理页、`memmove` 拷贝数据，再 `mappages` 映射到子进程页表 [59e41f6f499067df279856058137c3580d92ae337dfbc6c5ff57ecd7622447c1]。\n\n简言之，uvmcopy 是 fork 实现“父子进程各自拥有独立内存副本”的底层内存复制机制（此处为完整拷贝，非写时复制）。",
+  "citations": [
+    {
+      "id": "59e41f6f499067df279856058137c3580d92ae337dfbc6c5ff57ecd7622447c1",
+      "text": "int\nuvmcopy(pagetable_t old, pagetable_t new, uint64 sz)\n{\n  pte_t *pte;\n  uint64 pa, i;\n  uint flags;\n  char *mem;\n\n  for(i = 0; i < sz; i += PGSIZE){\n    if((pte = walk(old, i, 0)) == 0)\n      panic(\"uvmcopy: pte should exist\");\n    if((*pte & PTE_V) == 0)\n      panic(\"uvmcopy: page not present\");\n    pa = PTE2PA(*pte);\n    flags = PTE_FLAGS(*pte);\n    if((mem = kalloc()) == 0)\n      goto err;\n    memmove(mem, (char*)pa, PGSIZE);\n    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){\n      kfree(mem);\n      goto err;\n    }\n  }\n  return 0;\n\n err:\n  uvmunmap(new, 0, i / PGSIZE, 1);\n  return -1;\n}\n\n// mark a PTE invalid for user access.\n// used by exec for the user stack guard page.",
+      "location": {
+        "path": "kernel/vm.c",
+        "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+        "section": "uvmcopy",
+        "end_line": 336,
+        "function": "uvmcopy",
+        "start_line": 305
+      },
+      "scores": {
+        "bm25": 10.615566677482695
+      },
+      "rank": 1
+    },
+    {
+      "id": "d9a559d224e7058b5723049ad7a6a1fd1bb7f198beafa68d7c1f82bad8df766f",
+      "text": "int\nfork(void)\n{\n  int i, pid;\n  struct proc *np;\n  struct proc *p = myproc();\n\n  // Allocate process.\n  if((np = allocproc()) == 0){\n    return -1;\n  }\n\n  // Copy user memory from parent to child.\n  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){\n    freeproc(np);\n    release(&np->lock);\n    return -1;\n  }\n  np->sz = p->sz;\n\n  // copy saved user registers.\n  *(np->trapframe) = *(p->trapframe);\n\n  // Cause fork to return 0 in the child.\n  np->trapframe->a0 = 0;\n\n  // increment reference counts on open file descriptors.\n  for(i = 0; i < NOFILE; i++)\n    if(p->ofile[i])\n      np->ofile[i] = filedup(p->ofile[i]);\n  np->cwd = idup(p->cwd);\n\n  safestrcpy(np->name, p->name, sizeof(p->name));\n\n  pid = np->pid;\n\n  release(&np->lock);\n\n  acquire(&wait_lock);\n  np->parent = p;\n  release(&wait_lock);\n\n  acquire(&np->lock);\n  np->state = RUNNABLE;\n  release(&np->lock);\n\n  return pid;\n}\n\n// Pass p's abandoned children to init.\n// Caller must hold wait_lock.",
+      "location": {
+        "path": "kernel/proc.c",
+        "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+        "section": "fork",
+        "end_line": 329,
+        "function": "fork",
+        "start_line": 279
+      },
+      "scores": {
+        "bm25": 5.611125478764867
+      },
+      "rank": 3
+    }
+  ],
+  "searches": [
+    {
+      "query": "fork",
+      "results": [
+        {
+          "id": "c8b406dc650accb4a74ee5c8c906c2dbf78b8494755f5307b523670a439ed5e3",
+          "text": "void\nreparent2(char *s)\n{\n  for(int i = 0; i < 800; i++){\n    int pid1 = fork();\n    if(pid1 < 0){\n      printf(\"fork failed\\n\");\n      exit(1);\n    }\n    if(pid1 == 0){\n      fork();\n      fork();\n      exit(0);\n    }\n    wait(0);\n  }\n\n  exit(0);\n}\n\n// allocate all mem, free it, and allocate again",
+          "location": {
+            "path": "user/usertests.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "reparent2",
+            "end_line": 1052,
+            "function": "reparent2",
+            "start_line": 1032
+          },
+          "scores": {
+            "bm25": 6.723921141420281
+          },
+          "rank": 1
+        },
+        {
+          "id": "561abbd8a1fcab2ff5c25cb3e3d060a8f368e6163dde94ee1d4a26269a63fd1c",
+          "text": "void\ntwochildren(char *s)\n{\n  for(int i = 0; i < 1000; i++){\n    int pid1 = fork();\n    if(pid1 < 0){\n      printf(\"%s: fork failed\\n\", s);\n      exit(1);\n    }\n    if(pid1 == 0){\n      exit(0);\n    } else {\n      int pid2 = fork();\n      if(pid2 < 0){\n        printf(\"%s: fork failed\\n\", s);\n        exit(1);\n      }\n      if(pid2 == 0){\n        exit(0);\n      } else {\n        wait(0);\n        wait(0);\n      }\n    }\n  }\n}\n\n// concurrent forks to try to expose locking bugs.",
+          "location": {
+            "path": "user/usertests.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "twochildren",
+            "end_line": 960,
+            "function": "twochildren",
+            "start_line": 933
+          },
+          "scores": {
+            "bm25": 6.488937278406729
+          },
+          "rank": 2
+        },
+        {
+          "id": "b55781ed86a63aa7a1e793a23a8bec3371f264db33b78c79419f600682c6d232",
+          "text": "void\niter()\n{\n  unlink(\"a\");\n  unlink(\"b\");\n  \n  int pid1 = fork();\n  if(pid1 < 0){\n    printf(\"grind: fork failed\\n\");\n    exit(1);\n  }\n  if(pid1 == 0){\n    rand_next ^= 31;\n    go(0);\n    exit(0);\n  }\n\n  int pid2 = fork();\n  if(pid2 < 0){\n    printf(\"grind: fork failed\\n\");\n    exit(1);\n  }\n  if(pid2 == 0){\n    rand_next ^= 7177;\n    go(1);\n    exit(0);\n  }\n\n  int st1 = -1;\n  wait(&st1);\n  if(st1 != 0){\n    kill(pid1);\n    kill(pid2);\n  }\n  int st2 = -1;\n  wait(&st2);\n\n  exit(0);\n}\n",
+          "location": {
+            "path": "user/grind.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "iter",
+            "end_line": 335,
+            "function": "iter",
+            "start_line": 296
+          },
+          "scores": {
+            "bm25": 6.462367486513413
+          },
+          "rank": 3
+        }
+      ],
+      "retrieval_ms": 5494.687200000044,
+      "reranker_ms": 0.008499999239575118
+    },
+    {
+      "query": "uvmcopy",
+      "results": [
+        {
+          "id": "59e41f6f499067df279856058137c3580d92ae337dfbc6c5ff57ecd7622447c1",
+          "text": "int\nuvmcopy(pagetable_t old, pagetable_t new, uint64 sz)\n{\n  pte_t *pte;\n  uint64 pa, i;\n  uint flags;\n  char *mem;\n\n  for(i = 0; i < sz; i += PGSIZE){\n    if((pte = walk(old, i, 0)) == 0)\n      panic(\"uvmcopy: pte should exist\");\n    if((*pte & PTE_V) == 0)\n      panic(\"uvmcopy: page not present\");\n    pa = PTE2PA(*pte);\n    flags = PTE_FLAGS(*pte);\n    if((mem = kalloc()) == 0)\n      goto err;\n    memmove(mem, (char*)pa, PGSIZE);\n    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){\n      kfree(mem);\n      goto err;\n    }\n  }\n  return 0;\n\n err:\n  uvmunmap(new, 0, i / PGSIZE, 1);\n  return -1;\n}\n\n// mark a PTE invalid for user access.\n// used by exec for the user stack guard page.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "uvmcopy",
+            "end_line": 336,
+            "function": "uvmcopy",
+            "start_line": 305
+          },
+          "scores": {
+            "bm25": 10.615566677482695
+          },
+          "rank": 1
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          },
+          "scores": {
+            "bm25": 5.717054109592101
+          },
+          "rank": 2
+        },
+        {
+          "id": "d9a559d224e7058b5723049ad7a6a1fd1bb7f198beafa68d7c1f82bad8df766f",
+          "text": "int\nfork(void)\n{\n  int i, pid;\n  struct proc *np;\n  struct proc *p = myproc();\n\n  // Allocate process.\n  if((np = allocproc()) == 0){\n    return -1;\n  }\n\n  // Copy user memory from parent to child.\n  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){\n    freeproc(np);\n    release(&np->lock);\n    return -1;\n  }\n  np->sz = p->sz;\n\n  // copy saved user registers.\n  *(np->trapframe) = *(p->trapframe);\n\n  // Cause fork to return 0 in the child.\n  np->trapframe->a0 = 0;\n\n  // increment reference counts on open file descriptors.\n  for(i = 0; i < NOFILE; i++)\n    if(p->ofile[i])\n      np->ofile[i] = filedup(p->ofile[i]);\n  np->cwd = idup(p->cwd);\n\n  safestrcpy(np->name, p->name, sizeof(p->name));\n\n  pid = np->pid;\n\n  release(&np->lock);\n\n  acquire(&wait_lock);\n  np->parent = p;\n  release(&wait_lock);\n\n  acquire(&np->lock);\n  np->state = RUNNABLE;\n  release(&np->lock);\n\n  return pid;\n}\n\n// Pass p's abandoned children to init.\n// Caller must hold wait_lock.",
+          "location": {
+            "path": "kernel/proc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "fork",
+            "end_line": 329,
+            "function": "fork",
+            "start_line": 279
+          },
+          "scores": {
+            "bm25": 5.611125478764867
+          },
+          "rank": 3
+        }
+      ],
+      "retrieval_ms": 601.8022999996901,
+      "reranker_ms": 0.006100002792663872
+    }
+  ],
+  "generation": {
+    "finish_reason": "stop",
+    "usage": {
+      "input_tokens": 3305,
+      "output_tokens": 337,
+      "total_tokens": 3642,
+      "input_token_details": {
+        "cache_read": 0
+      },
+      "output_token_details": {
+        "reasoning": 46
+      }
+    },
+    "complete": true
+  }
+}

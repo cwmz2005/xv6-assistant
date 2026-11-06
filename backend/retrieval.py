@@ -22,7 +22,7 @@ def search(db, query, strategy="hybrid", top_k=5, candidates=20, rerank=False, r
     start=time.perf_counter()
     scope=select(Chunk)
     if version: scope=scope.where(or_(Chunk.location['commit'].astext==version,Chunk.location['commit'].astext.like('directory-%')))
-    rows=list(db.scalars(scope)); byid={r.id:r for r in rows}; scores={}; rankings=[]
+    rows=list(db.scalars(scope)); byid={r.id:r for r in rows}; scores={}; ranks={}; rankings=[]
     if not rows: return {"results":[],"retrieval_ms":0,"reranker_ms":0}
     if strategy in {"dense","hybrid"}:
         vector=embedder().embed_query("query: "+query)
@@ -30,11 +30,15 @@ def search(db, query, strategy="hybrid", top_k=5, candidates=20, rerank=False, r
         if version: dense=dense.where(or_(Chunk.location['commit'].astext==version,Chunk.location['commit'].astext.like('directory-%')))
         found=db.execute(dense.order_by(Chunk.embedding.cosine_distance(vector),Chunk.id).limit(candidates)).all()
         rankings.append([cid for cid,d in found])
-        for cid,d in found: scores.setdefault(cid,{})["cosine_similarity"]=1-float(d)
+        for rank,(cid,d) in enumerate(found,1):
+            scores.setdefault(cid,{})["cosine_similarity"]=1-float(d)
+            ranks.setdefault(cid,{})['dense']=rank
     if strategy in {"bm25","hybrid"}:
         values=BM25Okapi([tokens(r.text) or ["_"] for r in rows]).get_scores(tokens(query))
         ordered=sorted(zip(rows,values),key=lambda x:(-x[1],x[0].id))[:candidates]; rankings.append([r.id for r,s in ordered])
-        for r,s in ordered: scores.setdefault(r.id,{})["bm25"]=float(s)
+        for rank,(r,s) in enumerate(ordered,1):
+            scores.setdefault(r.id,{})["bm25"]=float(s)
+            ranks.setdefault(r.id,{})['bm25']=rank
     ids,fused=rrf(rankings,rrf_k)
     if strategy=="hybrid":
         for cid,s in fused.items(): scores[cid]["rrf"]=s
@@ -43,5 +47,6 @@ def search(db, query, strategy="hybrid", top_k=5, candidates=20, rerank=False, r
         values=reranker().predict([(query,byid[cid].text) for cid in ids])
         for cid,s in zip(ids,values): scores[cid]["cross_encoder"]=float(s)
         ids.sort(key=lambda cid:-scores[cid]["cross_encoder"])
-    result={"results":[{"id":cid,"text":byid[cid].text,"location":byid[cid].location,"scores":scores[cid],"rank":i+1} for i,cid in enumerate(ids[:top_k])],"retrieval_ms":recall_ms,"reranker_ms":(time.perf_counter()-t)*1000}
+    result={"results":[{"id":cid,"text":byid[cid].text,"location":byid[cid].location,"scores":scores[cid],"ranks":ranks[cid],"rank":i+1} for i,cid in enumerate(ids[:top_k])],"retrieval_ms":recall_ms,"reranker_ms":(time.perf_counter()-t)*1000,
+            'candidate_scores':[{'id':cid,'ranks':ranks[cid],'scores':scores[cid]} for cid in ids]}
     db.add(RetrievalLog(payload={"query":query,"strategy":strategy,"version":version,"candidates":candidates,"top_k":top_k,"rerank":rerank,"rrf_k":rrf_k,**result})); db.commit(); return result

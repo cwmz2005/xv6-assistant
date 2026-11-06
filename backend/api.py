@@ -23,6 +23,7 @@ class Chat(Query):
     session_id: str
     rag: bool = True
     tools: bool = False
+    tool_call_limit: int | None = Field(default=None,ge=1,le=100)
 class Import(BaseModel):
     root: str
     commit: str | None = None
@@ -75,6 +76,11 @@ def remove(sid:str):
         db.delete(s); db.commit(); return {"deleted":sid}
 @app.post("/api/chat")
 def chat(q:Chat):
+    from .session_lock import session_guard
+    with session_guard(q.session_id):
+        return chat_impl(q)
+
+def chat_impl(q:Chat):
     if not settings.llm_api_key or not settings.llm_model: raise HTTPException(503,"请配置 LLM_API_KEY 和 LLM_MODEL")
     from langchain_openai import ChatOpenAI
     t=time.perf_counter()
@@ -82,14 +88,14 @@ def chat(q:Chat):
         session=db.get(Session,q.session_id)
         if not session: raise HTTPException(404,"会话不存在")
         history=list(db.scalars(select(Message).where(Message.session_id==q.session_id).order_by(Message.sequence)))
-        found=search(db,**q.model_dump(exclude={"session_id","rag","tools"})) if q.rag else {"results":[]}
+        found=search(db,**q.model_dump(exclude={"session_id","rag","tools","tool_call_limit"})) if q.rag else {"results":[]}
         evidence=found["results"]
-        from .generation import generate
+        from .generation import generate,generation_info
         answer,citations,tool_log=generate(q.query,history,evidence,q.rag,
-            (lambda query: search(db,query,q.strategy,q.top_k,q.candidates,q.rerank,q.rrf_k,q.version)) if q.tools and q.rag else None)
+            (lambda query: search(db,query,q.strategy,q.top_k,q.candidates,q.rerank,q.rrf_k,q.version)) if q.tools and q.rag else None,max_search_calls=q.tool_call_limit)
         session.title=q.query[:80]
         db.add_all([Message(session_id=q.session_id,role="user",content=q.query,sequence=len(history)),Message(session_id=q.session_id,role="assistant",content=answer,citations=citations,sequence=len(history)+1)])
-        db.commit(); return {"answer":answer,"citations":citations,"retrieval":found,"tool_calls":tool_log,"end_to_end_ms":(time.perf_counter()-t)*1000}
+        db.commit(); return {"answer":answer,"citations":citations,"generation":generation_info.get(),"retrieval":found,"tool_calls":tool_log,"end_to_end_ms":(time.perf_counter()-t)*1000}
 @app.post('/api/chat/stream')
 def stream_chat(q: Chat):
     import json
