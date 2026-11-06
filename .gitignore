@@ -6,3 +6,5 @@ node_modules/
 data/
 
 .uv-cache/
+frontend/dist/
+*.tsbuildinfo

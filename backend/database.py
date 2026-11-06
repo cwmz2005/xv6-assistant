@@ -24,7 +24,7 @@ class Chunk(Base):
 class Session(Base):
     __tablename__ = "sessions"
     id: Mapped[str] = mapped_column(primary_key=True, default=uid)
-    title: Mapped[str] = mapped_column(Text, default="???")
+    title: Mapped[str] = mapped_column(Text, default="新会话")
 class Message(Base):
     __tablename__ = "messages"
     id: Mapped[str] = mapped_column(primary_key=True, default=uid)
@@ -37,5 +37,5 @@ class RetrievalLog(Base):
     __tablename__ = "retrieval_logs"
     id: Mapped[str] = mapped_column(primary_key=True, default=uid)
     payload: Mapped[dict] = mapped_column(JSONB)
-engine = create_engine(settings.url, pool_pre_ping=True)
+engine = create_engine(settings.url, pool_pre_ping=True, connect_args={"connect_timeout": 5})
 DB = sessionmaker(engine)

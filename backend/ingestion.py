@@ -13,7 +13,7 @@ def git(repo, *args):
     return subprocess.check_output(["git","-c",f"safe.directory={Path(repo).resolve().as_posix()}","-C",repo,*args])
 def ingest(db, root, commit):
     repo = str(Path(root).resolve())
-    if not commit: raise ValueError("?????????? Git ??")
+    if not commit: raise ValueError("必须指定已核验的原始 Git 提交")
     version = git(repo,"rev-parse",commit+"^{commit}").decode().strip()
     paths = git(repo,"ls-tree","-r","--name-only",version).decode().splitlines()
     count=0

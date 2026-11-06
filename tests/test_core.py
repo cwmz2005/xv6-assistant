@@ -7,4 +7,4 @@ def test_metrics():
     m=metrics(["x","a"],{"a":2,"b":1},2); assert m["recall"]==0.5; assert m["mrr"]==0.5; assert 0<m["ndcg"]<1
 def test_split():
     parts=list(split("# A\nhello\n# B\nworld","a.md")); assert parts[1][1]["start_line"]==3
-def test_identifiers(): assert "walkaddr" in tokens("walkaddr ????")
+def test_identifiers(): assert "walkaddr" in tokens("walkaddr 如何调用")
