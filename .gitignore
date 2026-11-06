@@ -9,3 +9,4 @@ data/
 frontend/dist/
 *.tsbuildinfo
 .test-tmp*/
+tmp/

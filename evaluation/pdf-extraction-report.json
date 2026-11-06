@@ -1,0 +1,36 @@
+{
+  "riscv-privileged-20211203.pdf": {
+    "pages": 155,
+    "indexed_chunks": 441,
+    "indexed_pages": 155,
+    "pages_without_chunks": [],
+    "index_profile": "pdf-v2:intfloat/multilingual-e5-small",
+    "is_system": true
+  },
+  "8254x_GBe_SDM.pdf": {
+    "pages": 410,
+    "indexed_chunks": 973,
+    "indexed_pages": 410,
+    "pages_without_chunks": [],
+    "index_profile": "pdf-v2:intfloat/multilingual-e5-small",
+    "is_system": true
+  },
+  "book-riscv-rev3.pdf": {
+    "pages": 114,
+    "indexed_chunks": 370,
+    "indexed_pages": 105,
+    "pages_without_chunks": [
+      2,
+      6,
+      8,
+      20,
+      30,
+      52,
+      58,
+      102,
+      108
+    ],
+    "index_profile": "pdf-v2:intfloat/multilingual-e5-small",
+    "is_system": true
+  }
+}

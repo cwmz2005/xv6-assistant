@@ -1,0 +1,81 @@
+[
+  {
+    "branch": "util",
+    "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true
+  },
+  {
+    "branch": "syscall",
+    "commit": "dc9c09903358605cef705b48746e202c6c9dd4f6",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 494
+  },
+  {
+    "branch": "pgtbl",
+    "commit": "b1083ee059a2aa0e018676f4f3790cb3bafaa1c5",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 495
+  },
+  {
+    "branch": "traps",
+    "commit": "c826bd8176c764a7ae385ba6567afc0cd91cfc69",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 499
+  },
+  {
+    "branch": "cow",
+    "commit": "a4ef3e1a5ae48457e228e343127e73d8fa2388ac",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 492
+  },
+  {
+    "branch": "thread",
+    "commit": "ddee41d96a53d67a4b4225aafb6b675bed9d3e7c",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 512
+  },
+  {
+    "branch": "net",
+    "commit": "71061515337fe191b3ed0802e132d7b0fd8d08ef",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 548
+  },
+  {
+    "branch": "lock",
+    "commit": "ad57ec8cb93867b5ec81a39e35e7cf08c64cf775",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 539
+  },
+  {
+    "branch": "fs",
+    "commit": "888b75593bd6b4c387d2dcf3e492c430145b9734",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 495
+  },
+  {
+    "branch": "mmap",
+    "commit": "9cc6b8345397c1f06cc93ed3fbaa20709cb1984e",
+    "author": "Frans Kaashoek <kaashoek@mit.edu>",
+    "selection": "2022 ancestor; MIT author checked; personal 2026 commits excluded",
+    "imported": true,
+    "imported_chunks": 496
+  }
+]

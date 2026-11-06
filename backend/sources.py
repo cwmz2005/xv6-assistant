@@ -11,6 +11,7 @@ class HTMLText(HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag in {'script', 'style'}: self.hidden += 1
         if tag in {'h1','h2','h3','p','pre','li','br'}: self.parts.append('\n')
+        if tag in {'h1','h2','h3'}: self.parts.append('#'*int(tag[1])+' ')
     def handle_endtag(self, tag):
         if tag in {'script','style'}: self.hidden = max(0,self.hidden-1)
         if tag in {'h1','h2','h3','p','pre','li'}: self.parts.append('\n')
@@ -24,7 +25,10 @@ def directory_files(root):
         if path.is_symlink() or not path.is_file(): continue
         relative = path.relative_to(root)
         if any(part.startswith('.') for part in relative.parts): continue
-        if path.suffix.lower() not in {'.md','.txt','.c','.h','.s','.html'}: continue
+        if path.suffix.lower() not in {'.md','.txt','.c','.h','.s','.html','.pdf'}: continue
+        if path.suffix.lower()=='.pdf':
+            yield relative.as_posix(),'',hashlib.sha256(path.read_bytes()).hexdigest()
+            continue
         content = path.read_text(encoding='utf-8',errors='replace')
         digest = hashlib.sha256(content.encode()).hexdigest()
         if path.suffix.lower() == '.html':

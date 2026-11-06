@@ -14,6 +14,7 @@ class Document(Base):
     path: Mapped[str] = mapped_column(Text)
     content_hash: Mapped[str] = mapped_column(String)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
+    index_profile: Mapped[str] = mapped_column(String, default='legacy', server_default='legacy')
     __table_args__ = (UniqueConstraint("source", "version", "path"),)
 class Chunk(Base):
     __tablename__ = "chunks"

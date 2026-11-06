@@ -2,7 +2,22 @@
 name = "xv6-rag"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["fastapi", "uvicorn[standard]", "pydantic-settings", "sqlalchemy", "psycopg[binary]", "pgvector", "rank-bm25", "sentence-transformers", "langchain-openai", "langchain-huggingface", "alembic"]
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic-settings",
+    "sqlalchemy",
+    "psycopg[binary]",
+    "pgvector",
+    "rank-bm25",
+    "sentence-transformers",
+    "langchain-openai",
+    "langchain-huggingface",
+    "alembic",
+    "pypdf>=7.0.0",
+    "pymupdf>=2.1",
+    "fonttools>=4.68.0",
+]
 [dependency-groups]
 dev = ["pytest", "httpx"]
 [tool.pytest.ini_options]

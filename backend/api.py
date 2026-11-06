@@ -26,6 +26,11 @@ class Chat(Query):
 class Import(BaseModel):
     root: str
     commit: str | None = None
+
+@app.get('/api/versions')
+def versions():
+    with DB() as db:
+        return list(db.scalars(select(Document.version).distinct().where(~Document.version.like('directory-%'))))
 @app.post("/api/import")
 def import_data(q: Import):
     with DB() as db: return {"chunks":ingest(db,q.root,q.commit)}

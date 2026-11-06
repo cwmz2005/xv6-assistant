@@ -8,3 +8,9 @@ def test_metrics():
 def test_split():
     parts=list(split("# A\nhello\n# B\nworld","a.md")); assert parts[1][1]["start_line"]==3
 def test_identifiers(): assert "walkaddr" in tokens("walkaddr 如何调用")
+
+def test_rrf_does_not_double_count_duplicate_ids():
+    ids,scores=rrf([['a','a','b']])
+    assert ids==['a','b']
+    assert scores['a']==1/61
+    assert scores['b']==1/62
