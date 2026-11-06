@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     pg_addr: str = "localhost"
@@ -12,10 +14,21 @@ class Settings(BaseSettings):
     llm_model: str = ""
     llm_max_tokens: int = 2048
     llm_reasoning_effort: str | None = None
+    judge_model: str | None = None
     embedding_model: str = "intfloat/multilingual-e5-small"
     reranker_model: str = "BAAI/bge-reranker-base"
-    default_code_version: str = 'dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe'
+    default_code_version: str = "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe"
+
     @property
     def url(self):
-        return URL.create("postgresql+psycopg", username=self.pg_user, password=self.pg_password, host=self.pg_addr, port=self.pg_port, database=self.pg_database)
+        return URL.create(
+            "postgresql+psycopg",
+            username=self.pg_user,
+            password=self.pg_password,
+            host=self.pg_addr,
+            port=self.pg_port,
+            database=self.pg_database,
+        )
+
+
 settings = Settings()

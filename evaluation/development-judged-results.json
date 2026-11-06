@@ -1,0 +1,1241 @@
+{
+  "id": "3cd8cba8-0c38-40e0-b372-ab413c49e577",
+  "scope": "retrieval_and_generation",
+  "records": [
+    {
+      "answer": "# 原始 xv6 中 `fork` + `uvmcopy` 的地址空间复制\n\n## 一、整体流程概览\n\n`fork` 的核心步骤（`kernel/proc.c`）：\n\n```c\nint fork(void) {\n  struct proc *np;\n  struct proc *p = myproc();\n\n  // 1. 分配 proc 结构体 + 内核栈 + 页",
+      "case_id": "cross-fork-copy",
+      "accuracy": null,
+      "strategy": "baseline",
+      "end_to_end_ms": 31939.32119999954,
+      "accuracy_method": "pending human review",
+      "reference_answer": "fork 调用 uvmcopy；uvmcopy 逐页 kalloc、memmove、mappages。错误时 uvmunmap 清理已复制页并返回 -1，fork 随后 freeproc、释放锁并返回 -1。",
+      "llm_judge": {
+        "score": 0.05,
+        "rationale": "回答明显截断，仅展示了fork函数开头的注释片段，未涉及uvmcopy的逐页kalloc/memmove/mappages机制，也未说明分配失败时uvmunmap清理已复制页、freeproc释放进程、返回-1等关键错误处理流程。核心内容几乎全部缺失。",
+        "model": "qwen3.8-flash",
+        "method": "LLM-as-Judge",
+        "independent_model": false,
+        "limitations": "模型评分可能存在偏差，尤其同模型自评；仅作为辅助，不等同于人工准确率。"
+      }
+    },
+    {
+      "answer": "## 原始 xv6 中 fork 复制子进程地址空间的流程\n\n### 调用链\n\n用户态调用 `fork()` 系统调用，内核中 `sys_fork` 直接调用 `fork()` [7d67cb52]。`fork()` 内部会调用 `uvmcopy()` 来复制父进程的页表到子进程。从 `defs.h` 可以看到其签名：\n\n```c\nint uvmcopy(pagetable_t, pagetable_t, uint64);\n```\n\n返回类型为 `int` [41dd7cde]。\n\n### uvmcopy 的原始行为\n\n根据 COW 实验文档中的描述，原始 xv6 的 `uvmcopy()` 的做法是：\n\n> **为子进程分配新的物理页（kalloc），然后将父进程对应页面的内容复制到新页中。**\n\n文档在提出 COW 修改方案时写道：\n\n> \"Modify uvmcopy() to map the parent's physical pages into the child, **instead of allocating new pages**.\" [63caace0]\n\n这反向说明了原始实现就是 **逐页 kalloc + memmove 复制**，即子进程获得一份完全独立的物理内存副本。\n\n### 分配失败的处理\n\n`uvmcopy` 返回 `int`，当 `kalloc()` 分配新物理页失败时，`uvmcopy` 返回 **-1**（失败）。此时 `fork()` 会清理已部分复制的子进程页表，并返回 -1，导致 `fork()` 系统调用失败。\n\n文档明确描述了这一现象：\n\n> \"The fork fails because there is not enough free physical memory to give the child a complete copy of the parent's memory.\" [63caace0]\n\n即当可用物理内存不足以给子进程一份完整拷贝时，`fork()` 直接失败。\n\n### 小结\n\n| 步骤 | 原始 xv6 行为 |\n|------|--------------|\n| 分配页面 | 对每个有效 PTE，`kalloc()` 新物理页 |\n| 复制内容 | 将父页数据 `memmove` 到子页 |\n| 设置 PTE | 子页表 PTE 指向新物理页，权限与父页相同 |\n| 分配失败 | `uvmcopy` 返回 -1 → `fork()` 返回 -1 → 用户态 `fork()` 返回 -1 |\n\n> **注意**：以上结论基于提供的实验文档描述和函数签名推断。所给证据中未包含 `fork()` 和 `uvmcopy()` 的完整源码，因此关于失败时具体清理逻辑（如 `uvmfree` 调用顺序）的细节无法从现有片段中进一步确认。",
+      "rerank": false,
+      "case_id": "cross-fork-copy",
+      "metrics": {
+        "mrr": 0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "results": [
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "rank": 1,
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "scores": {
+            "cosine_similarity": 0.8887963427548063
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566",
+          "rank": 2,
+          "text": "## Implement copy-on-write fork(hard)\n\n\n\n\n\n\nYour task is to implement copy-on-write fork in the xv6 kernel. You are\ndone if your modified kernel executes both the cowtest and 'usertests -q'\nprograms successfully.\n\n\n\nTo help you test your implementation, we've provided an xv6 program\ncalled cowtest (source in user/cowtest.c). cowtest runs various tests, but\neven the first will fail on unmodified xv6. Thus, initially, you\nwill see:\n\n\n\n$ cowtest\nsimple: fork() failed\n$ \n\n\n\nThe \"simple\" test allocates more than half of available physical\nmemory, and then fork()s. The fork fails because there is not enough\nfree physical memory to give the child a complete copy of the parent's memory.\n\n\n\nWhen you are done, your kernel should pass all the tests in both cowtest and\nusertests -q. That is:\n\n\n\n$ cowtest\nsimple: ok\nsimple: ok\nthree: zombie!\nok\nthree: zombie!\nok\nthree: zombie!\nok\nfile: ok\nALL COW TESTS PASSED\n$ usertests -q\n...\nALL TESTS PASSED\n$\n\n\n\n\n\nHere's a reasonable plan of attack.\n\n\n\n\n\n Modify uvmcopy() to map the parent's physical pages into the\nchild, instead of allocating new pages. Clear PTE_W in the\nPTEs of both child and parent for pages that have PTE_W set.\n\n  \n\n\n Modify usertrap() to recognize page faults. When a write page-fault\noccurs on a COW page that was originally writeable,\nallocate a new page with kalloc(), copy the old\npage to the new page, and install the new page in the PTE with PTE_W\nset.\nPages that were originally read-only (not mapped PTE_W,\nlike pages in the text segment) should remain read-only and\nshared between parent and child; a process that tries to write\nsuch a page should be killed.\n",
+          "scores": {
+            "cosine_similarity": 0.8796825408935547
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Implement copy-on-write fork(hard)",
+            "end_line": 160,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 81
+          }
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "rank": 3,
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "scores": {
+            "cosine_similarity": 0.8792462944984436
+          },
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          }
+        },
+        {
+          "id": "9a0300eac069904bf877f8f62409090c52327452b0b2a64da096d5133b28c84b",
+          "rank": 4,
+          "text": "int\nmain(void)\n{\n  forktest();\n  exit(0);\n}",
+          "scores": {
+            "cosine_similarity": 0.8770664407571307
+          },
+          "location": {
+            "path": "user/forktest.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "main",
+            "end_line": 56,
+            "function": "main",
+            "start_line": 51
+          }
+        },
+        {
+          "id": "7d67cb52f6b8e41c32ff920db4650bd4f6af38cfe03a954a03b781255df07b82",
+          "rank": 5,
+          "text": "uint64\nsys_fork(void)\n{\n  return fork();\n}\n",
+          "scores": {
+            "cosine_similarity": 0.8763207458353269
+          },
+          "location": {
+            "path": "kernel/sysproc.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "sys_fork",
+            "end_line": 29,
+            "function": "sys_fork",
+            "start_line": 24
+          }
+        }
+      ],
+      "accuracy": null,
+      "strategy": "dense",
+      "citations": [],
+      "reranker_ms": 0.033700001949910074,
+      "retrieval_ms": 13026.505000001634,
+      "end_to_end_ms": 25745.591999999306,
+      "question_type": "cross_file",
+      "accuracy_method": "pending human review",
+      "reference_answer": "fork 调用 uvmcopy；uvmcopy 逐页 kalloc、memmove、mappages。错误时 uvmunmap 清理已复制页并返回 -1，fork 随后 freeproc、释放锁并返回 -1。",
+      "llm_judge": {
+        "score": 0.6,
+        "rationale": "待评回答正确描述了 fork 调用 uvmcopy、uvmcopy 逐页 kalloc + memmove 复制的核心流程，分配失败时返回 -1 也正确。但参考答案中明确要求的错误处理细节缺失：未提及 uvmunmap 清理已复制页、freeproc 释放子进程结构、释放锁等关键步骤。待评回答自己也承认无法确认清理逻辑细节。此外未明确提到 mappages 这一关键步骤（仅以'设置 PTE'带过）。核心机制正确但错误处理部分不完整，属于部分正确。",
+        "model": "qwen3.8-flash",
+        "method": "LLM-as-Judge",
+        "independent_model": false,
+        "limitations": "模型评分可能存在偏差，尤其同模型自评；仅作为辅助，不等同于人工准确率。"
+      }
+    },
+    {
+      "answer": "## 原始 xv6 中 fork 与 uvmcopy 的地址空间复制机制\n\n### 整体流程\n\nfork 系统调用使子进程的初始内存内容与父进程完全相同。原始 xv6 采用**完全复制**策略：为子进程分配全新的物理页，逐页拷贝父进程内容 [07818843]。\n\n### uvmcopy 的具体实现\n\n`uvmcopy` 位于 `kernel/vm.c`，核心逻辑如下 [59e41f6f]：\n\n```c\nint\nuvmcopy(pagetable_t old, pagetable_t new, uint64 sz)\n{\n  pte_t *pte;\n  uint64 pa, i;\n  uint flags;\n  char *mem;\n\n  for(i = 0; i < sz; i += PGSIZE){\n    // 1. 在父进程页表中查找当前虚拟地址对应的 PTE\n    if((pte = walk(old, i, 0)) == 0)\n      panic(\"uvmcopy: pte should exist\");\n    if((*pte & PTE_V) == 0)\n      panic(\"uvmcopy: page not present\");\n\n    // 2. 获取父进程页面的物理地址和标志位\n    pa = PTE2PA(*pte);\n    flags = PTE_FLAGS(*pte);\n\n    // 3. 为子进程分配新的物理页\n    if((mem = kalloc()) == 0)\n      goto err;\n\n    // 4. 将父进程页面内容拷贝到新物理页\n    memmove(mem, (char*)pa, PGSIZE);\n\n    // 5. 将新物理页映射到子进程页表\n    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){\n      kfree(mem);\n      goto err;\n    }\n  }\n  return 0;\n\n err:\n  // 6. 分配失败时的清理\n  uvmunmap(new, 0, i / PGSIZE, 1);\n  return -1;\n}\n```\n\n### 逐页复制的关键步骤\n\n| 步骤 | 操作 | 说明 |\n|------|------|------|\n| ① | `walk(old, i, 0)` | 在父进程页表中定位虚拟地址 `i` 对应的 PTE |\n| ② | `PTE2PA(*pte)` | 提取父进程页面的物理地址 |\n| ③ | `kalloc()` | 为子进程分配**一块新的物理页** |\n| ④ | `memmove(mem, pa, PGSIZE)` | 将父进程页面内容逐字节拷贝到新页 |\n| ⑤ | `mappages(new, i, PGSIZE, mem, flags)` | 将新物理页映射到子进程页表的相同虚拟地址 |\n\n### 分配失败时的处理\n\n失败场景有两种：\n\n1. **`kalloc()` 返回 0**（物理内存耗尽）：直接 `goto err`。\n2. **`mappages()` 失败**（页表分配失败）：先 `kfree(mem)` 释放刚分配的物理页，再 `goto err`。\n\n进入 `err` 标签后执行：\n\n```c\nuvmunmap(new, 0, i / PGSIZE, 1);\nreturn -1;\n```\n\n- **`uvmunmap(new, 0, i / PGSIZE, 1)`**：从子进程页表中撤销前 `i / PGSIZE` 个已成功映射的页面（第三个参数 `1` 表示同时释放对应的物理页），避免内存泄漏。\n- **返回 `-1`**：告知调用者（fork）复制失败，fork 将向用户空间返回错误。\n\n### 总结\n\n原始 xv6 的 fork 是** eager copy**：每页都分配新物理内存并完整拷贝。当可用物理内存不足以容纳子进程的完整副本时，`kalloc()` 返回 0，uvmcopy 回滚已映射的部分并返回 -1，最终导致 fork 失败 [07818843][1b54f1fd]。",
+      "rerank": false,
+      "case_id": "cross-fork-copy",
+      "metrics": {
+        "mrr": 0.25,
+        "ndcg": 0.2640681225725909,
+        "recall": 0.5
+      },
+      "results": [
+        {
+          "id": "63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566",
+          "rank": 1,
+          "text": "## Implement copy-on-write fork(hard)\n\n\n\n\n\n\nYour task is to implement copy-on-write fork in the xv6 kernel. You are\ndone if your modified kernel executes both the cowtest and 'usertests -q'\nprograms successfully.\n\n\n\nTo help you test your implementation, we've provided an xv6 program\ncalled cowtest (source in user/cowtest.c). cowtest runs various tests, but\neven the first will fail on unmodified xv6. Thus, initially, you\nwill see:\n\n\n\n$ cowtest\nsimple: fork() failed\n$ \n\n\n\nThe \"simple\" test allocates more than half of available physical\nmemory, and then fork()s. The fork fails because there is not enough\nfree physical memory to give the child a complete copy of the parent's memory.\n\n\n\nWhen you are done, your kernel should pass all the tests in both cowtest and\nusertests -q. That is:\n\n\n\n$ cowtest\nsimple: ok\nsimple: ok\nthree: zombie!\nok\nthree: zombie!\nok\nthree: zombie!\nok\nfile: ok\nALL COW TESTS PASSED\n$ usertests -q\n...\nALL TESTS PASSED\n$\n\n\n\n\n\nHere's a reasonable plan of attack.\n\n\n\n\n\n Modify uvmcopy() to map the parent's physical pages into the\nchild, instead of allocating new pages. Clear PTE_W in the\nPTEs of both child and parent for pages that have PTE_W set.\n\n  \n\n\n Modify usertrap() to recognize page faults. When a write page-fault\noccurs on a COW page that was originally writeable,\nallocate a new page with kalloc(), copy the old\npage to the new page, and install the new page in the PTE with PTE_W\nset.\nPages that were originally read-only (not mapped PTE_W,\nlike pages in the text segment) should remain read-only and\nshared between parent and child; a process that tries to write\nsuch a page should be killed.\n",
+          "scores": {
+            "rrf": 0.03225806451612903,
+            "bm25": 11.250550084365287,
+            "cosine_similarity": 0.8796825408935547
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Implement copy-on-write fork(hard)",
+            "end_line": 160,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 81
+          }
+        },
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "rank": 2,
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "scores": {
+            "rrf": 0.03177805800756621,
+            "bm25": 9.448473016595756,
+            "cosine_similarity": 0.8887963427548063
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "07818843cf1d41262999553107339404c1354450a8619bf0f76be6dd14d34489",
+          "rank": 3,
+          "text": "systems often respond in much more interesting ways. As an example, many kernels use page faults to implement copy-on-write (COW) fork. To explain copy-on-write fork, consider xv6’s fork, described in Chapter 3. fork causes the child’s initial memory content to be the same as the parent’s at the time of the fork. Xv6 implements fork with uvmcopy (kernel/vm.c:306), which allocates physical memory for the child and copies the parent’s memory into it. It would be more efficient if the child and parent could share the parent’s physical memory. A straightforward implementation of this would not work, however, since it would cause the parent and child to disrupt each other’s execution with their writes to the shared stack and heap. Parent and child can safely share physical memory by appropriate use of page-table permissions and page faults. The CPU raises a page-fault exception when a virtual address is used that has no mapping in the page table, or has a mapping whose PTE_V flag is clear, or a mapping whose permission bits (PTE_R, PTE_W, PTE_X, PTE_U) forbid the operation being attempted.",
+          "scores": {
+            "rrf": 0.03131881575727918,
+            "bm25": 12.967511223556167,
+            "cosine_similarity": 0.8743141293525696
+          },
+          "location": {
+            "page": 49,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from kernel space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "49",
+            "start_line": null
+          }
+        },
+        {
+          "id": "59e41f6f499067df279856058137c3580d92ae337dfbc6c5ff57ecd7622447c1",
+          "rank": 4,
+          "text": "int\nuvmcopy(pagetable_t old, pagetable_t new, uint64 sz)\n{\n  pte_t *pte;\n  uint64 pa, i;\n  uint flags;\n  char *mem;\n\n  for(i = 0; i < sz; i += PGSIZE){\n    if((pte = walk(old, i, 0)) == 0)\n      panic(\"uvmcopy: pte should exist\");\n    if((*pte & PTE_V) == 0)\n      panic(\"uvmcopy: page not present\");\n    pa = PTE2PA(*pte);\n    flags = PTE_FLAGS(*pte);\n    if((mem = kalloc()) == 0)\n      goto err;\n    memmove(mem, (char*)pa, PGSIZE);\n    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){\n      kfree(mem);\n      goto err;\n    }\n  }\n  return 0;\n\n err:\n  uvmunmap(new, 0, i / PGSIZE, 1);\n  return -1;\n}\n\n// mark a PTE invalid for user access.\n// used by exec for the user stack guard page.",
+          "scores": {
+            "rrf": 0.03036576949620428,
+            "bm25": 10.615566677482695,
+            "cosine_similarity": 0.868613668166778
+          },
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "uvmcopy",
+            "end_line": 336,
+            "function": "uvmcopy",
+            "start_line": 305
+          }
+        },
+        {
+          "id": "1b54f1fd89e87fad21ace20eef5e6203de2cfbc64dd99839b1f89050e27c510a",
+          "rank": 5,
+          "text": "## The problem\n\n\nThe fork() system call in xv6 copies all of the parent process's\nuser-space memory into the child. If the parent is large, copying can\ntake a long time. Worse, the work is often largely wasted:\nfork() is commonly followed by exec() in the child, which \ndiscards the copied memory, usually without using most of it.\nOn the other hand, if both parent and child use a copied page, and one or both\nwrites it, the copy is truly needed.\n\n",
+          "scores": {
+            "rrf": 0.03007688828584351,
+            "bm25": 7.534518815305883,
+            "cosine_similarity": 0.8745387867368006
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "The problem",
+            "end_line": 46,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 35
+          }
+        }
+      ],
+      "accuracy": null,
+      "strategy": "hybrid",
+      "citations": [],
+      "reranker_ms": 0.008899995009414852,
+      "retrieval_ms": 564.2929000023287,
+      "end_to_end_ms": 17554.53839999973,
+      "question_type": "cross_file",
+      "accuracy_method": "pending human review",
+      "reference_answer": "fork 调用 uvmcopy；uvmcopy 逐页 kalloc、memmove、mappages。错误时 uvmunmap 清理已复制页并返回 -1，fork 随后 freeproc、释放锁并返回 -1。",
+      "llm_judge": {
+        "score": 0.85,
+        "rationale": "待评回答准确覆盖了 uvmcopy 逐页 kalloc、memmove、mappages 的核心流程，以及分配失败时通过 uvmunmap 清理已复制页并返回 -1 的处理逻辑。但参考答案还要求说明 fork 在 uvmcopy 返回 -1 后调用 freeproc、释放锁并返回 -1 的后续清理步骤，待评回答仅笼统提到'fork 将向用户空间返回错误'，未涉及 freeproc 和释放锁的具体处理，存在部分遗漏。",
+        "model": "qwen3.8-flash",
+        "method": "LLM-as-Judge",
+        "independent_model": false,
+        "limitations": "模型评分可能存在偏差，尤其同模型自评；仅作为辅助，不等同于人工准确率。"
+      }
+    },
+    {
+      "answer": "## 原始 xv6 中 fork + uvmcopy 的地址空间复制机制\n\n### 1. 整体流程\n\n当用户进程调用 `fork()` 时，内核需要让子进程获得父进程地址空间的一份**精确副本**（包括指令、数据和栈）[2375b745f2c312b07d9fab5373cc9c7200271e56a6b7d21844e79cbb1100f8fd]。\n\n具体实现由 `uvmcopy()`（位于 `kernel/vm.c:306`）完成：\n\n> \"Xv6 implements fork with uvmcopy (kernel/vm.c:306), which **allocates physical memory for the child** and **copies the parent's memory into it**.\" [07818843cf1d41262999553107339404c1354450a8619bf0f76be6dd14d34489]\n\n也就是说，原始 xv6 采用的是**立即复制（eager copy）** 策略：\n\n- 遍历父进程页表中的每个用户页；\n- 对每一页，调用 `kalloc()` 分配一个**新的物理页帧**；\n- 用 `memmove()` 将父进程该页的内容复制到新物理页；\n- 在子进程页表中建立虚拟地址 → 新物理页的映射。\n\n### 2. 分配失败时的处理\n\n如果父进程占用的内存较大，`kalloc()` 可能无法为子进程分配到足够的物理页。此时 `fork()` **直接失败**，向用户返回错误：\n\n> \"The 'simple' test allocates more than half of available physical memory, and then fork()s. **The fork fails because there is not enough free physical memory to give the child a complete copy of the parent's memory.**\" [63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566]\n\n在源码层面，`uvmcopy()` 中每次 `kalloc()` 返回 `0`（分配失败）时，会跳转到错误处理路径，**释放已经分配给子进程的所有物理页**，然后返回 `-1`，导致 `fork()` 整体失败。\n\n> ⚠️ **证据不足说明**：所给片段中没有直接引用 `uvmcopy()` 的错误清理代码（如 `uvmdealloc` 调用），但根据 cowtest 文档描述的行为（\"fork() failed\"）以及 xv6 的设计惯例，可以确认分配失败时已分配的页面会被回收，子进程不会处于半完成状态。\n\n### 3. 这种设计的代价\n\n文档明确指出了立即复制的问题：\n\n> \"If the parent is large, copying can take a long time. Worse, the work is often largely wasted: fork() is commonly followed by exec() in the child, which discards the copied memory, usually without using most of it.\" [1b54f1fd89e87fad21ace20eef5e6203de2cfbc64dd99839b1f89050e27c510a]\n\n因此，更高效的方案是 **Copy-on-Write (COW)**：父子共享物理页，仅在写操作触发缺页异常时才真正复制。这正是 xv6 实验 `cow` 要求实现的目标 [07818843cf1d41262999553107339404c1354450a8619bf0f76be6dd14d34489][63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566]。",
+      "rerank": true,
+      "case_id": "cross-fork-copy",
+      "metrics": {
+        "mrr": 0,
+        "ndcg": 0.0,
+        "recall": 0.0
+      },
+      "results": [
+        {
+          "id": "07818843cf1d41262999553107339404c1354450a8619bf0f76be6dd14d34489",
+          "rank": 1,
+          "text": "systems often respond in much more interesting ways. As an example, many kernels use page faults to implement copy-on-write (COW) fork. To explain copy-on-write fork, consider xv6’s fork, described in Chapter 3. fork causes the child’s initial memory content to be the same as the parent’s at the time of the fork. Xv6 implements fork with uvmcopy (kernel/vm.c:306), which allocates physical memory for the child and copies the parent’s memory into it. It would be more efficient if the child and parent could share the parent’s physical memory. A straightforward implementation of this would not work, however, since it would cause the parent and child to disrupt each other’s execution with their writes to the shared stack and heap. Parent and child can safely share physical memory by appropriate use of page-table permissions and page faults. The CPU raises a page-fault exception when a virtual address is used that has no mapping in the page table, or has a mapping whose PTE_V flag is clear, or a mapping whose permission bits (PTE_R, PTE_W, PTE_X, PTE_U) forbid the operation being attempted.",
+          "scores": {
+            "rrf": 0.03131881575727918,
+            "bm25": 12.967511223556167,
+            "cross_encoder": 0.835411548614502,
+            "cosine_similarity": 0.8743141293525696
+          },
+          "location": {
+            "page": 49,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from kernel space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "49",
+            "start_line": null
+          }
+        },
+        {
+          "id": "63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566",
+          "rank": 2,
+          "text": "## Implement copy-on-write fork(hard)\n\n\n\n\n\n\nYour task is to implement copy-on-write fork in the xv6 kernel. You are\ndone if your modified kernel executes both the cowtest and 'usertests -q'\nprograms successfully.\n\n\n\nTo help you test your implementation, we've provided an xv6 program\ncalled cowtest (source in user/cowtest.c). cowtest runs various tests, but\neven the first will fail on unmodified xv6. Thus, initially, you\nwill see:\n\n\n\n$ cowtest\nsimple: fork() failed\n$ \n\n\n\nThe \"simple\" test allocates more than half of available physical\nmemory, and then fork()s. The fork fails because there is not enough\nfree physical memory to give the child a complete copy of the parent's memory.\n\n\n\nWhen you are done, your kernel should pass all the tests in both cowtest and\nusertests -q. That is:\n\n\n\n$ cowtest\nsimple: ok\nsimple: ok\nthree: zombie!\nok\nthree: zombie!\nok\nthree: zombie!\nok\nfile: ok\nALL COW TESTS PASSED\n$ usertests -q\n...\nALL TESTS PASSED\n$\n\n\n\n\n\nHere's a reasonable plan of attack.\n\n\n\n\n\n Modify uvmcopy() to map the parent's physical pages into the\nchild, instead of allocating new pages. Clear PTE_W in the\nPTEs of both child and parent for pages that have PTE_W set.\n\n  \n\n\n Modify usertrap() to recognize page faults. When a write page-fault\noccurs on a COW page that was originally writeable,\nallocate a new page with kalloc(), copy the old\npage to the new page, and install the new page in the PTE with PTE_W\nset.\nPages that were originally read-only (not mapped PTE_W,\nlike pages in the text segment) should remain read-only and\nshared between parent and child; a process that tries to write\nsuch a page should be killed.\n",
+          "scores": {
+            "rrf": 0.03225806451612903,
+            "bm25": 11.250550084365287,
+            "cross_encoder": 0.6776341795921326,
+            "cosine_similarity": 0.8796825408935547
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Implement copy-on-write fork(hard)",
+            "end_line": 160,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 81
+          }
+        },
+        {
+          "id": "2375b745f2c312b07d9fab5373cc9c7200271e56a6b7d21844e79cbb1100f8fd",
+          "rank": 3,
+          "text": "An xv6 process consists of user-space memory (instructions, data, and stack) and per-process state private to the kernel. Xv6 time-shares processes: it transparently switches the available CPUs among the set of processes waiting to execute. When a process is not executing, xv6 saves the process’s CPU registers, restoring them when it next runs the process. The kernel associates a process identifier, or PID, with each process. A process may create a new process using the fork system call. fork gives the new process an exact copy of the calling process’s memory, both instructions and data. fork returns in both the original and new processes. In the original process, fork returns the new process’s PID. In the new process, fork returns zero. The original and new processes are often called the parent and child.\n\nfor central processing unit. Other documentation (e.g., the RISC-V specification) also uses the words processor, core, and hart instead of CPU.",
+          "scores": {
+            "rrf": 0.029437229437229435,
+            "bm25": 9.095857621305196,
+            "cross_encoder": 0.5539207458496094,
+            "cosine_similarity": 0.8677530367521638
+          },
+          "location": {
+            "page": 10,
+            "part": 4,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Processes and memory",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "10",
+            "start_line": null
+          }
+        },
+        {
+          "id": "4c54904a26a046866ae1c80d88b9ea5cd4c8d83e3170801a0e97e51ab5737445",
+          "rank": 4,
+          "text": "You might wonder why fork and exec are not combined in a single call; we will see later that the shell exploits the separation in its implementation of I/O redirection. To avoid the wastefulness of creating a duplicate process and then immediately replacing it (with exec), operating kernels optimize the implementation of fork for this use case by using virtual memory techniques such as copy-on-write (see Section 4.6). Xv6 allocates most user-space memory implicitly: fork allocates the memory required for the child’s copy of the parent’s memory, and exec allocates enough memory to hold the executable file. A process that needs more memory at run-time (perhaps for malloc) can call sbrk(n) to grow its data memory by n bytes; sbrk returns the location of the new memory.\n\n1.2 I/O and File descriptors",
+          "scores": {
+            "rrf": 0.02817460317460317,
+            "bm25": 7.05143700181458,
+            "cross_encoder": 0.5322184562683105,
+            "cosine_similarity": 0.8657474677863817
+          },
+          "location": {
+            "page": 13,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "1.2    I/O and File descriptors",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "13",
+            "start_line": null
+          }
+        },
+        {
+          "id": "1b54f1fd89e87fad21ace20eef5e6203de2cfbc64dd99839b1f89050e27c510a",
+          "rank": 5,
+          "text": "## The problem\n\n\nThe fork() system call in xv6 copies all of the parent process's\nuser-space memory into the child. If the parent is large, copying can\ntake a long time. Worse, the work is often largely wasted:\nfork() is commonly followed by exec() in the child, which \ndiscards the copied memory, usually without using most of it.\nOn the other hand, if both parent and child use a copied page, and one or both\nwrites it, the copy is truly needed.\n\n",
+          "scores": {
+            "rrf": 0.03007688828584351,
+            "bm25": 7.534518815305883,
+            "cross_encoder": 0.4165198504924774,
+            "cosine_similarity": 0.8745387867368006
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "The problem",
+            "end_line": 46,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 35
+          }
+        }
+      ],
+      "accuracy": null,
+      "strategy": "hybrid",
+      "citations": [
+        {
+          "id": "07818843cf1d41262999553107339404c1354450a8619bf0f76be6dd14d34489",
+          "rank": 1,
+          "text": "systems often respond in much more interesting ways. As an example, many kernels use page faults to implement copy-on-write (COW) fork. To explain copy-on-write fork, consider xv6’s fork, described in Chapter 3. fork causes the child’s initial memory content to be the same as the parent’s at the time of the fork. Xv6 implements fork with uvmcopy (kernel/vm.c:306), which allocates physical memory for the child and copies the parent’s memory into it. It would be more efficient if the child and parent could share the parent’s physical memory. A straightforward implementation of this would not work, however, since it would cause the parent and child to disrupt each other’s execution with their writes to the shared stack and heap. Parent and child can safely share physical memory by appropriate use of page-table permissions and page faults. The CPU raises a page-fault exception when a virtual address is used that has no mapping in the page table, or has a mapping whose PTE_V flag is clear, or a mapping whose permission bits (PTE_R, PTE_W, PTE_X, PTE_U) forbid the operation being attempted.",
+          "scores": {
+            "rrf": 0.03131881575727918,
+            "bm25": 12.967511223556167,
+            "cross_encoder": 0.835411548614502,
+            "cosine_similarity": 0.8743141293525696
+          },
+          "location": {
+            "page": 49,
+            "part": 1,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Traps from kernel space",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "49",
+            "start_line": null
+          }
+        },
+        {
+          "id": "63caace0f35b7fd6190c6bf78edb9c9d43221c2b5055ebc6901cb029a59d4566",
+          "rank": 2,
+          "text": "## Implement copy-on-write fork(hard)\n\n\n\n\n\n\nYour task is to implement copy-on-write fork in the xv6 kernel. You are\ndone if your modified kernel executes both the cowtest and 'usertests -q'\nprograms successfully.\n\n\n\nTo help you test your implementation, we've provided an xv6 program\ncalled cowtest (source in user/cowtest.c). cowtest runs various tests, but\neven the first will fail on unmodified xv6. Thus, initially, you\nwill see:\n\n\n\n$ cowtest\nsimple: fork() failed\n$ \n\n\n\nThe \"simple\" test allocates more than half of available physical\nmemory, and then fork()s. The fork fails because there is not enough\nfree physical memory to give the child a complete copy of the parent's memory.\n\n\n\nWhen you are done, your kernel should pass all the tests in both cowtest and\nusertests -q. That is:\n\n\n\n$ cowtest\nsimple: ok\nsimple: ok\nthree: zombie!\nok\nthree: zombie!\nok\nthree: zombie!\nok\nfile: ok\nALL COW TESTS PASSED\n$ usertests -q\n...\nALL TESTS PASSED\n$\n\n\n\n\n\nHere's a reasonable plan of attack.\n\n\n\n\n\n Modify uvmcopy() to map the parent's physical pages into the\nchild, instead of allocating new pages. Clear PTE_W in the\nPTEs of both child and parent for pages that have PTE_W set.\n\n  \n\n\n Modify usertrap() to recognize page faults. When a write page-fault\noccurs on a COW page that was originally writeable,\nallocate a new page with kalloc(), copy the old\npage to the new page, and install the new page in the PTE with PTE_W\nset.\nPages that were originally read-only (not mapped PTE_W,\nlike pages in the text segment) should remain read-only and\nshared between parent and child; a process that tries to write\nsuch a page should be killed.\n",
+          "scores": {
+            "rrf": 0.03225806451612903,
+            "bm25": 11.250550084365287,
+            "cross_encoder": 0.6776341795921326,
+            "cosine_similarity": 0.8796825408935547
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Implement copy-on-write fork(hard)",
+            "end_line": 160,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 81
+          }
+        },
+        {
+          "id": "2375b745f2c312b07d9fab5373cc9c7200271e56a6b7d21844e79cbb1100f8fd",
+          "rank": 3,
+          "text": "An xv6 process consists of user-space memory (instructions, data, and stack) and per-process state private to the kernel. Xv6 time-shares processes: it transparently switches the available CPUs among the set of processes waiting to execute. When a process is not executing, xv6 saves the process’s CPU registers, restoring them when it next runs the process. The kernel associates a process identifier, or PID, with each process. A process may create a new process using the fork system call. fork gives the new process an exact copy of the calling process’s memory, both instructions and data. fork returns in both the original and new processes. In the original process, fork returns the new process’s PID. In the new process, fork returns zero. The original and new processes are often called the parent and child.\n\nfor central processing unit. Other documentation (e.g., the RISC-V specification) also uses the words processor, core, and hart instead of CPU.",
+          "scores": {
+            "rrf": 0.029437229437229435,
+            "bm25": 9.095857621305196,
+            "cross_encoder": 0.5539207458496094,
+            "cosine_similarity": 0.8677530367521638
+          },
+          "location": {
+            "page": 10,
+            "part": 4,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Processes and memory",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "10",
+            "start_line": null
+          }
+        },
+        {
+          "id": "1b54f1fd89e87fad21ace20eef5e6203de2cfbc64dd99839b1f89050e27c510a",
+          "rank": 5,
+          "text": "## The problem\n\n\nThe fork() system call in xv6 copies all of the parent process's\nuser-space memory into the child. If the parent is large, copying can\ntake a long time. Worse, the work is often largely wasted:\nfork() is commonly followed by exec() in the child, which \ndiscards the copied memory, usually without using most of it.\nOn the other hand, if both parent and child use a copied page, and one or both\nwrites it, the copy is truly needed.\n\n",
+          "scores": {
+            "rrf": 0.03007688828584351,
+            "bm25": 7.534518815305883,
+            "cross_encoder": 0.4165198504924774,
+            "cosine_similarity": 0.8745387867368006
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "The problem",
+            "end_line": 46,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 35
+          }
+        }
+      ],
+      "reranker_ms": 8273.243399999046,
+      "retrieval_ms": 560.6360999954632,
+      "end_to_end_ms": 34966.374099996756,
+      "question_type": "cross_file",
+      "accuracy_method": "pending human review",
+      "reference_answer": "fork 调用 uvmcopy；uvmcopy 逐页 kalloc、memmove、mappages。错误时 uvmunmap 清理已复制页并返回 -1，fork 随后 freeproc、释放锁并返回 -1。",
+      "llm_judge": {
+        "score": 0.7,
+        "rationale": "待评回答正确描述了 fork 调用 uvmcopy、逐页 kalloc 分配物理页、memmove 复制内容、在子进程页表建立映射的核心流程，也正确说明了分配失败时释放已分配页面并返回 -1。但存在以下不足：1）未明确提及 mappages 函数名（仅用'建立映射'描述其功能）；2）未明确提及 uvmunmap 函数名；3）完全遗漏了 fork 失败后 freeproc 释放进程结构、释放锁并返回 -1 的后续清理步骤，这是参考答案中明确包含的重要细节。回答还承认'证据不足'未能引用具体清理代码。整体核心机制正确，但完整度有欠缺。",
+        "model": "qwen3.8-flash",
+        "method": "LLM-as-Judge",
+        "independent_model": false,
+        "limitations": "模型评分可能存在偏差，尤其同模型自评；仅作为辅助，不等同于人工准确率。"
+      }
+    },
+    {
+      "answer": "## 关于这个问题的澄清\n\n**xv6 中没有 CUDA GPU 调度器，也不管理显存。** 这个问题的前提是不成立的。\n\n### xv6 是什么？\n\nxv6 是 MIT 用于操作系统教学的一个极简 Unix-like 操作系统，它：\n\n- 运行在 **RISC-V**（或早期版本的 x86）架构上\n- 提供基本的进程调度、内存管理（分页）、文件系统、系统调用等核心 OS 功能\n- 代码量极小（约几千行 C 代码），设计目标是**易于理解**\n\n### xv6 不涉及的内容\n\n- ❌ GPU 调度\n- ❌ CUDA（NVIDIA 的 GPU 计算平台）\n- ❌ 显存管理\n- ❌ 任何图形/并行计算加速相关功能\n\n### 如果你感兴趣的是 GPU 调度\n\n可以关注以下方向：\n\n| 系统 | 说明 |\n|------|------|\n| Linux DRM/KMS | Linux 内核中的 GPU 驱动框架 |\n| NVIDIA CUDA Runtime | NVIDIA 官方的 GPU 计算 API |\n| 学术论文 | 如 \"GPUOS\"、\"CUDA-SIM\" 等研究 GPU 调度的项目 |\n\n如果你是在某个特定课程或项目中看到了\"xv6 + CUDA\"的组合，欢迎提供更多上下文，我可以帮你进一步分析。",
+      "case_id": "out-cuda",
+      "accuracy": null,
+      "strategy": "baseline",
+      "end_to_end_ms": 6682.666099994094,
+      "accuracy_method": "pending human review",
+      "reference_answer": "所给原始 xv6 与资料不提供 CUDA GPU 调度器的实现，应指出证据不足，不编造该组件。",
+      "llm_judge": {
+        "score": 1.0,
+        "rationale": "待评回答正确指出xv6中没有CUDA GPU调度器，问题前提不成立，未编造任何组件实现，与参考答案要求完全一致。额外提供的背景信息属于合理补充，不影响核心判断的准确性。",
+        "model": "qwen3.8-flash",
+        "method": "LLM-as-Judge",
+        "independent_model": false,
+        "limitations": "模型评分可能存在偏差，尤其同模型自评；仅作为辅助，不等同于人工准确率。"
+      }
+    },
+    {
+      "answer": "## 回答\n\n**本知识库中没有任何关于 xv6 CUDA GPU 调度器或显存管理的内容。**\n\n所检索到的全部证据片段均与 CUDA GPU 调度器无关，它们涉及的是 xv6 在 **RISC-V** 架构上的以下方面：\n\n- **物理内存布局**（RAM、UART、virtio disk、CLINT、PLIC 的地址映射）[933c6bdf2af050a0e89d681c7326ce4ce1982c18e7ebf0b6b9949487d6550728]\n- **内核虚拟内存管理函数**（`kvminit`、`uvmalloc`、`uvmfree` 等）[41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480]\n- **virtio 磁盘设备定义**（mmio 寄存器、描述符）[c839acd031299005cfe318c047e9fbd775c9b2d80cbce037fd611abe1909a73e]\n- **多核 CPU 结构**（`struct cpu`、`mycpu`、`myproc`）[ee9a8728ec11101accaca2dbbb12b4008b01aebcfde522eaa26ac96514dd0cf5]\n- **Copy-on-Write Fork 实验**（标题，无实质内容）[6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857]\n\n### 补充说明\n\nxv6 是一个面向教学设计的操作系统，运行在 RISC-V（或 x86）QEMU 模拟器上，**不包含 CUDA GPU 调度器，也不管理 GPU 显存**。CUDA 是 NVIDIA 的 GPU 计算平台，与 xv6 的设计目标无关。如果知识库中确实不存在相关文档，则该问题无法依据现有证据作答。",
+      "rerank": false,
+      "case_id": "out-cuda",
+      "metrics": {
+        "mrr": null,
+        "ndcg": null,
+        "recall": null
+      },
+      "results": [
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "rank": 1,
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "scores": {
+            "cosine_similarity": 0.8505696921521991
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "rank": 2,
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "scores": {
+            "cosine_similarity": 0.8439155910065433
+          },
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          }
+        },
+        {
+          "id": "933c6bdf2af050a0e89d681c7326ce4ce1982c18e7ebf0b6b9949487d6550728",
+          "rank": 3,
+          "text": "// Physical memory layout\n\n// qemu -machine virt is set up like this,\n// based on qemu's hw/riscv/virt.c:\n//\n// 00001000 -- boot ROM, provided by qemu\n// 02000000 -- CLINT\n// 0C000000 -- PLIC\n// 10000000 -- uart0 \n// 10001000 -- virtio disk \n// 80000000 -- boot ROM jumps here in machine mode\n//             -kernel loads the kernel here\n// unused RAM after 80000000.\n\n// the kernel uses physical memory thus:\n// 80000000 -- entry.S, then kernel text and data\n// end -- start of kernel page allocation area\n// PHYSTOP -- end RAM used by the kernel\n\n// qemu puts UART registers here in physical memory.\n#define UART0 0x10000000L\n#define UART0_IRQ 10\n\n// virtio mmio interface\n#define VIRTIO0 0x10001000\n#define VIRTIO0_IRQ 1\n\n// core local interruptor (CLINT), which contains the timer.\n#define CLINT 0x2000000L\n#define CLINT_MTIMECMP(hartid) (CLINT + 0x4000 + 8*(hartid))\n#define CLINT_MTIME (CLINT + 0xBFF8) // cycles since boot.\n\n// qemu puts platform-level interrupt controller (PLIC) here.\n#define PLIC 0x0c000000L\n#define PLIC_PRIORITY (PLIC + 0x0)\n#define PLIC_PENDING (PLIC + 0x1000)\n#define PLIC_MENABLE(hart) (PLIC + 0x2000 + (hart)*0x100)\n#define PLIC_SENABLE(hart) (PLIC + 0x2080 + (hart)*0x100)\n#define PLIC_MPRIORITY(hart) (PLIC + 0x200000 + (hart)*0x2000)\n#define PLIC_SPRIORITY(hart) (PLIC + 0x201000 + (hart)*0x2000)\n#define PLIC_MCLAIM(hart) (PLIC + 0x200004 + (hart)*0x2000)\n#define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart)*0x2000)\n\n// the kernel expects there to be RAM\n// for use by the kernel and user pages\n// from physical address 0x80000000 to PHYSTOP.\n#define KERNBASE 0x80000000L\n#define PHYSTOP (KERNBASE + 128*1024*1024)\n\n// map the trampoline page to the highest address,\n// in both user and kernel space.\n#define TRAMPOLINE (MAXVA - PGSIZE)\n\n// map kernel stacks beneath the trampoline,\n// each surrounded by invalid guard pages.\n#define KSTACK(p) (TRAMPOLINE - ((p)+1)* 2*PGSIZE)\n\n// User memory layout.\n// Address zero first:\n//   text\n//   original data and bss\n//   fixed-size stack\n//   expandable heap\n//   ...\n//   TRAPFRAME (p->trapframe, used by the trampoline)\n//   TRAMPOLINE (the same page as in the kernel)\n#define TRAPFRAME (TRAMPOLINE - PGSIZE)",
+          "scores": {
+            "cosine_similarity": 0.8418683002152085
+          },
+          "location": {
+            "path": "kernel/memlayout.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 67,
+            "function": "",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "c839acd031299005cfe318c047e9fbd775c9b2d80cbce037fd611abe1909a73e",
+          "rank": 4,
+          "text": "//\n// virtio device definitions.\n// for both the mmio interface, and virtio descriptors.\n// only tested with qemu.\n//\n// the virtio spec:\n// https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.pdf\n//\n\n// virtio mmio control registers, mapped starting at 0x10001000.\n// from qemu virtio_mmio.h\n#define VIRTIO_MMIO_MAGIC_VALUE\t\t0x000 // 0x74726976\n#define VIRTIO_MMIO_VERSION\t\t0x004 // version; should be 2\n#define VIRTIO_MMIO_DEVICE_ID\t\t0x008 // device type; 1 is net, 2 is disk\n#define VIRTIO_MMIO_VENDOR_ID\t\t0x00c // 0x554d4551\n#define VIRTIO_MMIO_DEVICE_FEATURES\t0x010\n#define VIRTIO_MMIO_DRIVER_FEATURES\t0x020\n#define VIRTIO_MMIO_QUEUE_SEL\t\t0x030 // select queue, write-only\n#define VIRTIO_MMIO_QUEUE_NUM_MAX\t0x034 // max size of current queue, read-only\n#define VIRTIO_MMIO_QUEUE_NUM\t\t0x038 // size of current queue, write-only\n#define VIRTIO_MMIO_QUEUE_READY\t\t0x044 // ready bit\n#define VIRTIO_MMIO_QUEUE_NOTIFY\t0x050 // write-only\n#define VIRTIO_MMIO_INTERRUPT_STATUS\t0x060 // read-only\n#define VIRTIO_MMIO_INTERRUPT_ACK\t0x064 // write-only\n#define VIRTIO_MMIO_STATUS\t\t0x070 // read/write\n#define VIRTIO_MMIO_QUEUE_DESC_LOW\t0x080 // physical address for descriptor table, write-only\n#define VIRTIO_MMIO_QUEUE_DESC_HIGH\t0x084\n#define VIRTIO_MMIO_DRIVER_DESC_LOW\t0x090 // physical address for available ring, write-only\n#define VIRTIO_MMIO_DRIVER_DESC_HIGH\t0x094\n#define VIRTIO_MMIO_DEVICE_DESC_LOW\t0x0a0 // physical address for used ring, write-only\n#define VIRTIO_MMIO_DEVICE_DESC_HIGH\t0x0a4\n\n// status register bits, from qemu virtio_config.h\n#define VIRTIO_CONFIG_S_ACKNOWLEDGE\t1\n#define VIRTIO_CONFIG_S_DRIVER\t\t2\n#define VIRTIO_CONFIG_S_DRIVER_OK\t4\n#define VIRTIO_CONFIG_S_FEATURES_OK\t8\n\n// device feature bits\n#define VIRTIO_BLK_F_RO              5\t/* Disk is read-only */\n#define VIRTIO_BLK_F_SCSI            7\t/* Supports scsi command passthru */\n#define VIRTIO_BLK_F_CONFIG_WCE     11\t/* Writeback mode available in config */\n#define VIRTIO_BLK_F_MQ             12\t/* support more than one vq */\n#define VIRTIO_F_ANY_LAYOUT         27\n#define VIRTIO_RING_F_INDIRECT_DESC 28\n#define VIRTIO_RING_F_EVENT_IDX     29\n\n// this many virtio descriptors.\n// must be a power of two.\n#define NUM 8\n\n// a single descriptor, from the spec.",
+          "scores": {
+            "cosine_similarity": 0.841055700716038
+          },
+          "location": {
+            "path": "kernel/virtio.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 52,
+            "function": "",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "ee9a8728ec11101accaca2dbbb12b4008b01aebcfde522eaa26ac96514dd0cf5",
+          "rank": 5,
+          "text": "Xv6 often needs a pointer to the current process’s proc structure. On a uniprocessor one could have a global variable pointing to the current proc. This doesn’t work on a multi-core machine, since each core executes a different process. The way to solve this problem is to exploit the fact that each core has its own set of registers; we can use one of those registers to help find per-core information. Xv6 maintains a struct cpu for each CPU (kernel/proc.h:22), which records the process cur- rently running on that CPU (if any), saved registers for the CPU’s scheduler thread, and the count of nested spinlocks needed to manage interrupt disabling. The function mycpu (kernel/proc.c:74) returns a pointer to the current CPU’s struct cpu. RISC-V numbers its CPUs, giving each a hartid. Xv6 ensures that each CPU’s hartid is stored in that CPU’s tp register while in the kernel. This allows mycpu to use tp to index an array of cpu structures to find the right one. Ensuring that a CPU’s tp always holds the CPU’s hartid is a little involved.",
+          "scores": {
+            "cosine_similarity": 0.840038011071802
+          },
+          "location": {
+            "page": 74,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          }
+        }
+      ],
+      "accuracy": null,
+      "strategy": "dense",
+      "citations": [
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "rank": 1,
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "scores": {
+            "cosine_similarity": 0.8505696921521991
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "rank": 2,
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "scores": {
+            "cosine_similarity": 0.8439155910065433
+          },
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          }
+        },
+        {
+          "id": "933c6bdf2af050a0e89d681c7326ce4ce1982c18e7ebf0b6b9949487d6550728",
+          "rank": 3,
+          "text": "// Physical memory layout\n\n// qemu -machine virt is set up like this,\n// based on qemu's hw/riscv/virt.c:\n//\n// 00001000 -- boot ROM, provided by qemu\n// 02000000 -- CLINT\n// 0C000000 -- PLIC\n// 10000000 -- uart0 \n// 10001000 -- virtio disk \n// 80000000 -- boot ROM jumps here in machine mode\n//             -kernel loads the kernel here\n// unused RAM after 80000000.\n\n// the kernel uses physical memory thus:\n// 80000000 -- entry.S, then kernel text and data\n// end -- start of kernel page allocation area\n// PHYSTOP -- end RAM used by the kernel\n\n// qemu puts UART registers here in physical memory.\n#define UART0 0x10000000L\n#define UART0_IRQ 10\n\n// virtio mmio interface\n#define VIRTIO0 0x10001000\n#define VIRTIO0_IRQ 1\n\n// core local interruptor (CLINT), which contains the timer.\n#define CLINT 0x2000000L\n#define CLINT_MTIMECMP(hartid) (CLINT + 0x4000 + 8*(hartid))\n#define CLINT_MTIME (CLINT + 0xBFF8) // cycles since boot.\n\n// qemu puts platform-level interrupt controller (PLIC) here.\n#define PLIC 0x0c000000L\n#define PLIC_PRIORITY (PLIC + 0x0)\n#define PLIC_PENDING (PLIC + 0x1000)\n#define PLIC_MENABLE(hart) (PLIC + 0x2000 + (hart)*0x100)\n#define PLIC_SENABLE(hart) (PLIC + 0x2080 + (hart)*0x100)\n#define PLIC_MPRIORITY(hart) (PLIC + 0x200000 + (hart)*0x2000)\n#define PLIC_SPRIORITY(hart) (PLIC + 0x201000 + (hart)*0x2000)\n#define PLIC_MCLAIM(hart) (PLIC + 0x200004 + (hart)*0x2000)\n#define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart)*0x2000)\n\n// the kernel expects there to be RAM\n// for use by the kernel and user pages\n// from physical address 0x80000000 to PHYSTOP.\n#define KERNBASE 0x80000000L\n#define PHYSTOP (KERNBASE + 128*1024*1024)\n\n// map the trampoline page to the highest address,\n// in both user and kernel space.\n#define TRAMPOLINE (MAXVA - PGSIZE)\n\n// map kernel stacks beneath the trampoline,\n// each surrounded by invalid guard pages.\n#define KSTACK(p) (TRAMPOLINE - ((p)+1)* 2*PGSIZE)\n\n// User memory layout.\n// Address zero first:\n//   text\n//   original data and bss\n//   fixed-size stack\n//   expandable heap\n//   ...\n//   TRAPFRAME (p->trapframe, used by the trampoline)\n//   TRAMPOLINE (the same page as in the kernel)\n#define TRAPFRAME (TRAMPOLINE - PGSIZE)",
+          "scores": {
+            "cosine_similarity": 0.8418683002152085
+          },
+          "location": {
+            "path": "kernel/memlayout.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 67,
+            "function": "",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "c839acd031299005cfe318c047e9fbd775c9b2d80cbce037fd611abe1909a73e",
+          "rank": 4,
+          "text": "//\n// virtio device definitions.\n// for both the mmio interface, and virtio descriptors.\n// only tested with qemu.\n//\n// the virtio spec:\n// https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.pdf\n//\n\n// virtio mmio control registers, mapped starting at 0x10001000.\n// from qemu virtio_mmio.h\n#define VIRTIO_MMIO_MAGIC_VALUE\t\t0x000 // 0x74726976\n#define VIRTIO_MMIO_VERSION\t\t0x004 // version; should be 2\n#define VIRTIO_MMIO_DEVICE_ID\t\t0x008 // device type; 1 is net, 2 is disk\n#define VIRTIO_MMIO_VENDOR_ID\t\t0x00c // 0x554d4551\n#define VIRTIO_MMIO_DEVICE_FEATURES\t0x010\n#define VIRTIO_MMIO_DRIVER_FEATURES\t0x020\n#define VIRTIO_MMIO_QUEUE_SEL\t\t0x030 // select queue, write-only\n#define VIRTIO_MMIO_QUEUE_NUM_MAX\t0x034 // max size of current queue, read-only\n#define VIRTIO_MMIO_QUEUE_NUM\t\t0x038 // size of current queue, write-only\n#define VIRTIO_MMIO_QUEUE_READY\t\t0x044 // ready bit\n#define VIRTIO_MMIO_QUEUE_NOTIFY\t0x050 // write-only\n#define VIRTIO_MMIO_INTERRUPT_STATUS\t0x060 // read-only\n#define VIRTIO_MMIO_INTERRUPT_ACK\t0x064 // write-only\n#define VIRTIO_MMIO_STATUS\t\t0x070 // read/write\n#define VIRTIO_MMIO_QUEUE_DESC_LOW\t0x080 // physical address for descriptor table, write-only\n#define VIRTIO_MMIO_QUEUE_DESC_HIGH\t0x084\n#define VIRTIO_MMIO_DRIVER_DESC_LOW\t0x090 // physical address for available ring, write-only\n#define VIRTIO_MMIO_DRIVER_DESC_HIGH\t0x094\n#define VIRTIO_MMIO_DEVICE_DESC_LOW\t0x0a0 // physical address for used ring, write-only\n#define VIRTIO_MMIO_DEVICE_DESC_HIGH\t0x0a4\n\n// status register bits, from qemu virtio_config.h\n#define VIRTIO_CONFIG_S_ACKNOWLEDGE\t1\n#define VIRTIO_CONFIG_S_DRIVER\t\t2\n#define VIRTIO_CONFIG_S_DRIVER_OK\t4\n#define VIRTIO_CONFIG_S_FEATURES_OK\t8\n\n// device feature bits\n#define VIRTIO_BLK_F_RO              5\t/* Disk is read-only */\n#define VIRTIO_BLK_F_SCSI            7\t/* Supports scsi command passthru */\n#define VIRTIO_BLK_F_CONFIG_WCE     11\t/* Writeback mode available in config */\n#define VIRTIO_BLK_F_MQ             12\t/* support more than one vq */\n#define VIRTIO_F_ANY_LAYOUT         27\n#define VIRTIO_RING_F_INDIRECT_DESC 28\n#define VIRTIO_RING_F_EVENT_IDX     29\n\n// this many virtio descriptors.\n// must be a power of two.\n#define NUM 8\n\n// a single descriptor, from the spec.",
+          "scores": {
+            "cosine_similarity": 0.841055700716038
+          },
+          "location": {
+            "path": "kernel/virtio.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 52,
+            "function": "",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "ee9a8728ec11101accaca2dbbb12b4008b01aebcfde522eaa26ac96514dd0cf5",
+          "rank": 5,
+          "text": "Xv6 often needs a pointer to the current process’s proc structure. On a uniprocessor one could have a global variable pointing to the current proc. This doesn’t work on a multi-core machine, since each core executes a different process. The way to solve this problem is to exploit the fact that each core has its own set of registers; we can use one of those registers to help find per-core information. Xv6 maintains a struct cpu for each CPU (kernel/proc.h:22), which records the process cur- rently running on that CPU (if any), saved registers for the CPU’s scheduler thread, and the count of nested spinlocks needed to manage interrupt disabling. The function mycpu (kernel/proc.c:74) returns a pointer to the current CPU’s struct cpu. RISC-V numbers its CPUs, giving each a hartid. Xv6 ensures that each CPU’s hartid is stored in that CPU’s tp register while in the kernel. This allows mycpu to use tp to index an array of cpu structures to find the right one. Ensuring that a CPU’s tp always holds the CPU’s hartid is a little involved.",
+          "scores": {
+            "cosine_similarity": 0.840038011071802
+          },
+          "location": {
+            "page": 74,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          }
+        }
+      ],
+      "reranker_ms": 0.039699996705166996,
+      "retrieval_ms": 386.35169999906793,
+      "end_to_end_ms": 14402.415200005635,
+      "question_type": "out_of_scope",
+      "accuracy_method": "pending human review",
+      "reference_answer": "所给原始 xv6 与资料不提供 CUDA GPU 调度器的实现，应指出证据不足，不编造该组件。",
+      "llm_judge": {
+        "score": 1.0,
+        "rationale": "待评回答正确指出知识库中不存在 xv6 CUDA GPU 调度器及显存管理相关内容，未编造任何不存在的组件实现，符合参考答案'应指出证据不足，不编造该组件'的要求。回答还额外列举了实际检索到的证据片段并补充了 xv6 设计背景说明，完整性和正确性均满足。",
+        "model": "qwen3.8-flash",
+        "method": "LLM-as-Judge",
+        "independent_model": false,
+        "limitations": "模型评分可能存在偏差，尤其同模型自评；仅作为辅助，不等同于人工准确率。"
+      }
+    },
+    {
+      "answer": "## 回答\n\n**证据不足，无法回答该问题。**\n\n所提供的全部证据片段中，没有任何内容涉及 CUDA GPU 调度器或显存管理。具体来看：\n\n- [6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857] 和 [97055cf27aa944701f4380b55ca7995b326134a7e1830c3184470aa7c7d9370c] 分别涉及 Copy-on-Write Fork 实验和 Unix utilities 实验，与 GPU 无关。\n- [06ac9ec5607432a3163c3e20488c3549ae2cc629e29816eb1211f88126947226] 描述的是 xv6 作为 monolithic kernel 的代码组织方式。\n- [41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480] 列出的是 `kernel/defs.h` 中虚拟内存（vm.c）、中断控制器（plic.c）、磁盘驱动（virtio_disk.c）等模块的函数声明，不涉及任何 GPU 相关接口。\n\n此外，从 xv6 本身的设计来看，它是一个运行在 **RISC-V** 架构上的教学操作系统，其硬件模型（qemu virt 机器）并不包含 CUDA GPU 设备，因此 xv6 中不存在\"CUDA GPU 调度器\"这一组件。该问题基于一个不成立的前提。",
+      "rerank": false,
+      "case_id": "out-cuda",
+      "metrics": {
+        "mrr": null,
+        "ndcg": null,
+        "recall": null
+      },
+      "results": [
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "rank": 1,
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "scores": {
+            "rrf": 0.029726775956284153,
+            "bm25": 3.9628624776661834,
+            "cosine_similarity": 0.8505696921521991
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "d4204e9dba00ac56f591d990f9cf0bcc2061d09302b5fb2af93349bccf0a921a",
+          "rank": 2,
+          "text": "\n\n\nLab: Xv6 and Unix utilities\n\n\n\n\n\n\n",
+          "scores": {
+            "rrf": 0.026334026334026334,
+            "bm25": 4.0187348668382965,
+            "cosine_similarity": 0.834947417083538
+          },
+          "location": {
+            "path": "utils.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 11,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "06ac9ec5607432a3163c3e20488c3549ae2cc629e29816eb1211f88126947226",
+          "rank": 3,
+          "text": "processes, they use locks for concurrency control, they implement a file system, etc. This book focuses on these core ideas. Xv6 is implemented as a monolithic kernel, like most Unix operating systems. Thus, the xv6 kernel interface corresponds to the operating system interface, and the kernel implements the com- plete operating system. Since xv6 doesn’t provide many services, its kernel is smaller than some microkernels, but conceptually xv6 is monolithic.\n\n2.4 Code: xv6 organization\n\nThe xv6 kernel source is in the kernel/ sub-directory. The source is divided into files, following a rough notion of modularity; Figure 2.2 lists the files. The inter-module interfaces are defined in",
+          "scores": {
+            "rrf": 0.01639344262295082,
+            "bm25": 4.612837760380397
+          },
+          "location": {
+            "page": 25,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: xv6 organization",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "25",
+            "start_line": null
+          }
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "rank": 4,
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "scores": {
+            "rrf": 0.016129032258064516,
+            "cosine_similarity": 0.8439155910065433
+          },
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          }
+        },
+        {
+          "id": "97055cf27aa944701f4380b55ca7995b326134a7e1830c3184470aa7c7d9370c",
+          "rank": 5,
+          "text": "# Lab: Xv6 and Unix utilities\n\n\n\nThis lab will familiarize you with xv6 and its system calls.\n\n\n",
+          "scores": {
+            "rrf": 0.016129032258064516,
+            "bm25": 4.517506747997057
+          },
+          "location": {
+            "path": "utils.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Lab: Xv6 and Unix utilities",
+            "end_line": 19,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 12
+          }
+        }
+      ],
+      "accuracy": null,
+      "strategy": "hybrid",
+      "citations": [
+        {
+          "id": "6c2256ef92df1c1246d194fb14db9a1dcc60b08adc2c90d653759f2353c04857",
+          "rank": 1,
+          "text": "\n\n\nLab: Copy-on-Write Fork for xv6\n\n\n\n\n\n",
+          "scores": {
+            "rrf": 0.029726775956284153,
+            "bm25": 3.9628624776661834,
+            "cosine_similarity": 0.8505696921521991
+          },
+          "location": {
+            "path": "cow.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "",
+            "end_line": 10,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 1
+          }
+        },
+        {
+          "id": "06ac9ec5607432a3163c3e20488c3549ae2cc629e29816eb1211f88126947226",
+          "rank": 3,
+          "text": "processes, they use locks for concurrency control, they implement a file system, etc. This book focuses on these core ideas. Xv6 is implemented as a monolithic kernel, like most Unix operating systems. Thus, the xv6 kernel interface corresponds to the operating system interface, and the kernel implements the com- plete operating system. Since xv6 doesn’t provide many services, its kernel is smaller than some microkernels, but conceptually xv6 is monolithic.\n\n2.4 Code: xv6 organization\n\nThe xv6 kernel source is in the kernel/ sub-directory. The source is divided into files, following a rough notion of modularity; Figure 2.2 lists the files. The inter-module interfaces are defined in",
+          "scores": {
+            "rrf": 0.01639344262295082,
+            "bm25": 4.612837760380397
+          },
+          "location": {
+            "page": 25,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: xv6 organization",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "25",
+            "start_line": null
+          }
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "rank": 4,
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "scores": {
+            "rrf": 0.016129032258064516,
+            "cosine_similarity": 0.8439155910065433
+          },
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          }
+        },
+        {
+          "id": "97055cf27aa944701f4380b55ca7995b326134a7e1830c3184470aa7c7d9370c",
+          "rank": 5,
+          "text": "# Lab: Xv6 and Unix utilities\n\n\n\nThis lab will familiarize you with xv6 and its system calls.\n\n\n",
+          "scores": {
+            "rrf": 0.016129032258064516,
+            "bm25": 4.517506747997057
+          },
+          "location": {
+            "path": "utils.html",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data\\labs",
+            "section": "Lab: Xv6 and Unix utilities",
+            "end_line": 19,
+            "function": null,
+            "line_basis": "extracted_text",
+            "start_line": 12
+          }
+        }
+      ],
+      "reranker_ms": 0.009499999578110874,
+      "retrieval_ms": 598.3637999961502,
+      "end_to_end_ms": 11998.779800000193,
+      "question_type": "out_of_scope",
+      "accuracy_method": "pending human review",
+      "reference_answer": "所给原始 xv6 与资料不提供 CUDA GPU 调度器的实现，应指出证据不足，不编造该组件。",
+      "llm_judge": {
+        "score": 1.0,
+        "rationale": "待评回答正确指出证据不足，未编造 CUDA GPU 调度器的实现，并列举了具体证据片段说明其与 GPU 无关，还进一步从 xv6 架构设计角度解释了不存在该组件的原因，完全符合参考答案的要求。",
+        "model": "qwen3.8-flash",
+        "method": "LLM-as-Judge",
+        "independent_model": false,
+        "limitations": "模型评分可能存在偏差，尤其同模型自评；仅作为辅助，不等同于人工准确率。"
+      }
+    },
+    {
+      "answer": "## 回答\n\n**本知识库中不存在关于 xv6 CUDA GPU 调度器或显存管理的内容。**\n\nxv6 是一个运行在 **RISC-V 多核处理器**上的教学操作系统 [da24d20c629eeeaf96a8443b665c61b85afffd84fd09c6bcc404c98b429c3f63]，其内核初始化流程仅涉及以下子系统 [077fdfbf2202aee19355970f1b72b3523f4cbf306a2b814509302824df73f8bd]：\n\n- 物理页分配器 (`kinit`)\n- 内核页表 (`kvminit`)\n- 进程表 (`procinit`)\n- 中断控制器 (`plicinit`)\n- 缓冲区缓存 (`binit`)\n- 虚拟磁盘 (`virtio_disk_init`)\n\n其调度机制是基于 RISC-V 多核 CPU 的进程多路复用，通过硬件定时器中断驱动上下文切换 [8e4a02de12d4dab107f0f1eb5b62d6134f6e4130b99ff794cc491e7f935db1a3]，以及利用 per-CPU 的 `tp` 寄存器定位当前 CPU 的 `struct cpu` [ee9a8728ec11101accaca2dbbb12b4008b01aebcfde522eaa26ac96514dd0cf5]。\n\n**xv6 不包含任何 CUDA GPU 调度器、显存管理模块或 GPU 相关代码。** 如果您需要 GPU 调度相关知识，可能需要查阅其他操作系统（如 Linux 的 DRM 子系统）或 CUDA 编程文档。",
+      "rerank": true,
+      "case_id": "out-cuda",
+      "metrics": {
+        "mrr": null,
+        "ndcg": null,
+        "recall": null
+      },
+      "results": [
+        {
+          "id": "ee9a8728ec11101accaca2dbbb12b4008b01aebcfde522eaa26ac96514dd0cf5",
+          "rank": 1,
+          "text": "Xv6 often needs a pointer to the current process’s proc structure. On a uniprocessor one could have a global variable pointing to the current proc. This doesn’t work on a multi-core machine, since each core executes a different process. The way to solve this problem is to exploit the fact that each core has its own set of registers; we can use one of those registers to help find per-core information. Xv6 maintains a struct cpu for each CPU (kernel/proc.h:22), which records the process cur- rently running on that CPU (if any), saved registers for the CPU’s scheduler thread, and the count of nested spinlocks needed to manage interrupt disabling. The function mycpu (kernel/proc.c:74) returns a pointer to the current CPU’s struct cpu. RISC-V numbers its CPUs, giving each a hartid. Xv6 ensures that each CPU’s hartid is stored in that CPU’s tp register while in the kernel. This allows mycpu to use tp to index an array of cpu structures to find the right one. Ensuring that a CPU’s tp always holds the CPU’s hartid is a little involved.",
+          "scores": {
+            "rrf": 0.015384615384615385,
+            "cross_encoder": 0.3599528670310974,
+            "cosine_similarity": 0.840038011071802
+          },
+          "location": {
+            "page": 74,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          }
+        },
+        {
+          "id": "8e4a02de12d4dab107f0f1eb5b62d6134f6e4130b99ff794cc491e7f935db1a3",
+          "rank": 2,
+          "text": "Xv6 multiplexes by switching each CPU from one process to another in two situations. First, xv6’s sleep and wakeup mechanism switches when a process waits for device or pipe I/O to complete, or waits for a child to exit, or waits in the sleep system call. Second, xv6 periodically forces a switch to cope with processes that compute for long periods without sleeping. This multiplexing creates the illusion that each process has its own CPU, much as xv6 uses the memory allocator and hardware page tables to create the illusion that each process has its own memory. Implementing multiplexing poses a few challenges. First, how to switch from one process to another? Although the idea of context switching is simple, the implementation is some of the most opaque code in xv6. Second, how to force switches in a way that is transparent to user processes? Xv6 uses the standard technique in which a hardware timer’s interrupts drive context switches. Third, all of the CPUs switch among the same shared set of processes, and a locking plan is necessary to avoid",
+          "scores": {
+            "rrf": 0.014705882352941176,
+            "bm25": 4.1840017290144,
+            "cross_encoder": 0.25007084012031555
+          },
+          "location": {
+            "page": 71,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Chapter 7",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "71",
+            "start_line": null
+          }
+        },
+        {
+          "id": "077fdfbf2202aee19355970f1b72b3523f4cbf306a2b814509302824df73f8bd",
+          "rank": 3,
+          "text": "void\nmain()\n{\n  if(cpuid() == 0){\n    consoleinit();\n    printfinit();\n    printf(\"\\n\");\n    printf(\"xv6 kernel is booting\\n\");\n    printf(\"\\n\");\n    kinit();         // physical page allocator\n    kvminit();       // create kernel page table\n    kvminithart();   // turn on paging\n    procinit();      // process table\n    trapinit();      // trap vectors\n    trapinithart();  // install kernel trap vector\n    plicinit();      // set up interrupt controller\n    plicinithart();  // ask PLIC for device interrupts\n    binit();         // buffer cache\n    iinit();         // inode table\n    fileinit();      // file table\n    virtio_disk_init(); // emulated hard disk\n    userinit();      // first user process\n    __sync_synchronize();\n    started = 1;\n  } else {\n    while(started == 0)\n      ;\n    __sync_synchronize();\n    printf(\"hart %d starting\\n\", cpuid());\n    kvminithart();    // turn on paging\n    trapinithart();   // install kernel trap vector\n    plicinithart();   // ask PLIC for device interrupts\n  }\n\n  scheduler();        \n}",
+          "scores": {
+            "rrf": 0.014925373134328358,
+            "cross_encoder": 0.2479984164237976,
+            "cosine_similarity": 0.8394789291049326
+          },
+          "location": {
+            "path": "kernel/main.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "main",
+            "end_line": 45,
+            "function": "main",
+            "start_line": 10
+          }
+        },
+        {
+          "id": "da24d20c629eeeaf96a8443b665c61b85afffd84fd09c6bcc404c98b429c3f63",
+          "rank": 4,
+          "text": "many Unix operating systems. This chapter also provides an overview of an xv6 process, which is the unit of isolation in xv6, and the creation of the first process when xv6 starts. Xv6 runs on a multi-core1 RISC-V microprocessor, and much of its low-level functionality (for example, its process implementation) is specific to RISC-V. RISC-V is a 64-bit CPU, and xv6 is written in “LP64” C, which means long (L) and pointers (P) in the C programming language are 64 bits, but int is 32-bit. This book assumes the reader has done a bit of machine-level programming on some architecture, and will introduce RISC-V-specific ideas as they come up. A useful reference for RISC-V is “The RISC-V Reader: An Open Architecture Atlas” [15]. The user-level ISA [2] and the privileged architecture [3] are the official specifications. The CPU in a complete computer is surrounded by support hardware, much of it in the form of I/O interfaces. Xv6 is written for the support hardware simulated by qemu’s “-machine virt” option. This includes RAM, a ROM containing boot code, a serial connection",
+          "scores": {
+            "rrf": 0.014285714285714285,
+            "bm25": 4.153517390242453,
+            "cross_encoder": 0.030319608747959137
+          },
+          "location": {
+            "page": 21,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Chapter 2",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "21",
+            "start_line": null
+          }
+        },
+        {
+          "id": "94172464ba575b8abedf8775451a3c4b6eb15b3c3743dcc1fcd3a767ca96d454",
+          "rank": 5,
+          "text": "void\nvirtio_disk_init(void)\n{\n  uint32 status = 0;\n\n  initlock(&disk.vdisk_lock, \"virtio_disk\");\n\n  if(*R(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||\n     *R(VIRTIO_MMIO_VERSION) != 2 ||\n     *R(VIRTIO_MMIO_DEVICE_ID) != 2 ||\n     *R(VIRTIO_MMIO_VENDOR_ID) != 0x554d4551){\n    panic(\"could not find virtio disk\");\n  }\n  \n  // reset device\n  *R(VIRTIO_MMIO_STATUS) = status;\n\n  // set ACKNOWLEDGE status bit\n  status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;\n  *R(VIRTIO_MMIO_STATUS) = status;\n\n  // set DRIVER status bit\n  status |= VIRTIO_CONFIG_S_DRIVER;\n  *R(VIRTIO_MMIO_STATUS) = status;\n\n  // negotiate features\n  uint64 features = *R(VIRTIO_MMIO_DEVICE_FEATURES);\n  features &= ~(1 << VIRTIO_BLK_F_RO);\n  features &= ~(1 << VIRTIO_BLK_F_SCSI);\n  features &= ~(1 << VIRTIO_BLK_F_CONFIG_WCE);\n  features &= ~(1 << VIRTIO_BLK_F_MQ);\n  features &= ~(1 << VIRTIO_F_ANY_LAYOUT);\n  features &= ~(1 << VIRTIO_RING_F_EVENT_IDX);\n  features &= ~(1 << VIRTIO_RING_F_INDIRECT_DESC);\n  *R(VIRTIO_MMIO_DRIVER_FEATURES) = features;\n\n  // tell device that feature negotiation is complete.\n  status |= VIRTIO_CONFIG_S_FEATURES_OK;\n  *R(VIRTIO_MMIO_STATUS) = status;\n\n  // re-read status to ensure FEATURES_OK is set.\n  status = *R(VIRTIO_MMIO_STATUS);\n  if(!(status & VIRTIO_CONFIG_S_FEATURES_OK))\n    panic(\"virtio disk FEATURES_OK unset\");\n\n  // initialize queue 0.\n  *R(VIRTIO_MMIO_QUEUE_SEL) = 0;\n\n  // ensure queue 0 is not in use.\n  if(*R(VIRTIO_MMIO_QUEUE_READY))\n    panic(\"virtio disk should not be ready\");\n\n  // check maximum queue size.\n  uint32 max = *R(VIRTIO_MMIO_QUEUE_NUM_MAX);\n  if(max == 0)\n    panic(\"virtio disk has no queue 0\");\n  if(max < NUM)\n    panic(\"virtio disk max queue too short\");\n\n  // allocate and zero queue memory.\n  disk.desc = kalloc();\n  disk.avail = kalloc();\n  disk.used = kalloc();\n  if(!disk.desc || !disk.avail || !disk.used)\n    panic(\"virtio disk kalloc\");\n  memset(disk.desc, 0, PGSIZE);\n  memset(disk.avail, 0, PGSIZE);\n  memset(disk.used, 0, PGSIZE);\n\n  // set queue size.\n  *R(VIRTIO_MMIO_QUEUE_NUM) = NUM;\n\n  // write physical addresses.\n  *R(VIRTIO_MMIO_QUEUE_DESC_LOW) = (uint64)disk.desc;\n  *R(VIRTIO_MMIO_QUEUE_DESC_HIGH) = (uint64)disk.desc >> 32;\n  *R(VIRTIO_MMIO_DRIVER_DESC_LOW) = (uint64)disk.avail;\n  *R(VIRTIO_MMIO_DRIVER_DESC_HIGH) = (uint64)disk.avail >> 32;\n  *R(VIRTIO_MMIO_DEVICE_DESC_LOW) = (uint64)disk.used;\n  *R(VIRTIO_MMIO_DEVICE_DESC_HIGH) = (uint64)disk.used >> 32;\n",
+          "scores": {
+            "rrf": 0.015151515151515152,
+            "cross_encoder": 0.016385124996304512,
+            "cosine_similarity": 0.8396462393228722
+          },
+          "location": {
+            "path": "kernel/virtio_disk.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "virtio_disk_init",
+            "end_line": 140,
+            "function": "virtio_disk_init",
+            "start_line": 61
+          }
+        }
+      ],
+      "accuracy": null,
+      "strategy": "hybrid",
+      "citations": [
+        {
+          "id": "ee9a8728ec11101accaca2dbbb12b4008b01aebcfde522eaa26ac96514dd0cf5",
+          "rank": 1,
+          "text": "Xv6 often needs a pointer to the current process’s proc structure. On a uniprocessor one could have a global variable pointing to the current proc. This doesn’t work on a multi-core machine, since each core executes a different process. The way to solve this problem is to exploit the fact that each core has its own set of registers; we can use one of those registers to help find per-core information. Xv6 maintains a struct cpu for each CPU (kernel/proc.h:22), which records the process cur- rently running on that CPU (if any), saved registers for the CPU’s scheduler thread, and the count of nested spinlocks needed to manage interrupt disabling. The function mycpu (kernel/proc.c:74) returns a pointer to the current CPU’s struct cpu. RISC-V numbers its CPUs, giving each a hartid. Xv6 ensures that each CPU’s hartid is stored in that CPU’s tp register while in the kernel. This allows mycpu to use tp to index an array of cpu structures to find the right one. Ensuring that a CPU’s tp always holds the CPU’s hartid is a little involved.",
+          "scores": {
+            "rrf": 0.015384615384615385,
+            "cross_encoder": 0.3599528670310974,
+            "cosine_similarity": 0.840038011071802
+          },
+          "location": {
+            "page": 74,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Code: mycpu and myproc",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "74",
+            "start_line": null
+          }
+        },
+        {
+          "id": "8e4a02de12d4dab107f0f1eb5b62d6134f6e4130b99ff794cc491e7f935db1a3",
+          "rank": 2,
+          "text": "Xv6 multiplexes by switching each CPU from one process to another in two situations. First, xv6’s sleep and wakeup mechanism switches when a process waits for device or pipe I/O to complete, or waits for a child to exit, or waits in the sleep system call. Second, xv6 periodically forces a switch to cope with processes that compute for long periods without sleeping. This multiplexing creates the illusion that each process has its own CPU, much as xv6 uses the memory allocator and hardware page tables to create the illusion that each process has its own memory. Implementing multiplexing poses a few challenges. First, how to switch from one process to another? Although the idea of context switching is simple, the implementation is some of the most opaque code in xv6. Second, how to force switches in a way that is transparent to user processes? Xv6 uses the standard technique in which a hardware timer’s interrupts drive context switches. Third, all of the CPUs switch among the same shared set of processes, and a locking plan is necessary to avoid",
+          "scores": {
+            "rrf": 0.014705882352941176,
+            "bm25": 4.1840017290144,
+            "cross_encoder": 0.25007084012031555
+          },
+          "location": {
+            "page": 71,
+            "part": 2,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Chapter 7",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "71",
+            "start_line": null
+          }
+        },
+        {
+          "id": "077fdfbf2202aee19355970f1b72b3523f4cbf306a2b814509302824df73f8bd",
+          "rank": 3,
+          "text": "void\nmain()\n{\n  if(cpuid() == 0){\n    consoleinit();\n    printfinit();\n    printf(\"\\n\");\n    printf(\"xv6 kernel is booting\\n\");\n    printf(\"\\n\");\n    kinit();         // physical page allocator\n    kvminit();       // create kernel page table\n    kvminithart();   // turn on paging\n    procinit();      // process table\n    trapinit();      // trap vectors\n    trapinithart();  // install kernel trap vector\n    plicinit();      // set up interrupt controller\n    plicinithart();  // ask PLIC for device interrupts\n    binit();         // buffer cache\n    iinit();         // inode table\n    fileinit();      // file table\n    virtio_disk_init(); // emulated hard disk\n    userinit();      // first user process\n    __sync_synchronize();\n    started = 1;\n  } else {\n    while(started == 0)\n      ;\n    __sync_synchronize();\n    printf(\"hart %d starting\\n\", cpuid());\n    kvminithart();    // turn on paging\n    trapinithart();   // install kernel trap vector\n    plicinithart();   // ask PLIC for device interrupts\n  }\n\n  scheduler();        \n}",
+          "scores": {
+            "rrf": 0.014925373134328358,
+            "cross_encoder": 0.2479984164237976,
+            "cosine_similarity": 0.8394789291049326
+          },
+          "location": {
+            "path": "kernel/main.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "main",
+            "end_line": 45,
+            "function": "main",
+            "start_line": 10
+          }
+        },
+        {
+          "id": "da24d20c629eeeaf96a8443b665c61b85afffd84fd09c6bcc404c98b429c3f63",
+          "rank": 4,
+          "text": "many Unix operating systems. This chapter also provides an overview of an xv6 process, which is the unit of isolation in xv6, and the creation of the first process when xv6 starts. Xv6 runs on a multi-core1 RISC-V microprocessor, and much of its low-level functionality (for example, its process implementation) is specific to RISC-V. RISC-V is a 64-bit CPU, and xv6 is written in “LP64” C, which means long (L) and pointers (P) in the C programming language are 64 bits, but int is 32-bit. This book assumes the reader has done a bit of machine-level programming on some architecture, and will introduce RISC-V-specific ideas as they come up. A useful reference for RISC-V is “The RISC-V Reader: An Open Architecture Atlas” [15]. The user-level ISA [2] and the privileged architecture [3] are the official specifications. The CPU in a complete computer is surrounded by support hardware, much of it in the form of I/O interfaces. Xv6 is written for the support hardware simulated by qemu’s “-machine virt” option. This includes RAM, a ROM containing boot code, a serial connection",
+          "scores": {
+            "rrf": 0.014285714285714285,
+            "bm25": 4.153517390242453,
+            "cross_encoder": 0.030319608747959137
+          },
+          "location": {
+            "page": 21,
+            "part": 3,
+            "path": "book-riscv-rev3.pdf",
+            "commit": "directory-v1",
+            "source": "D:\\Project\\ManagedByOthers\\InfoSearch_261106\\data",
+            "section": "Chapter 2",
+            "end_line": null,
+            "line_basis": "pdf_page",
+            "page_label": "21",
+            "start_line": null
+          }
+        }
+      ],
+      "reranker_ms": 5804.6236999944085,
+      "retrieval_ms": 574.192200001562,
+      "end_to_end_ms": 13293.352200002118,
+      "question_type": "out_of_scope",
+      "accuracy_method": "pending human review",
+      "reference_answer": "所给原始 xv6 与资料不提供 CUDA GPU 调度器的实现，应指出证据不足，不编造该组件。",
+      "llm_judge": {
+        "score": 1.0,
+        "rationale": "待评回答正确识别出该问题涉及一个不存在的组件（xv6中的CUDA GPU调度器），明确指出知识库中不包含相关内容，未编造任何信息，并提供了xv6实际架构的准确背景说明。这与参考答案要求'指出证据不足，不编造该组件'完全一致，属于正确的拒答。",
+        "model": "qwen3.8-flash",
+        "method": "LLM-as-Judge",
+        "independent_model": false,
+        "limitations": "模型评分可能存在偏差，尤其同模型自评；仅作为辅助，不等同于人工准确率。"
+      }
+    }
+  ],
+  "summary": [
+    {
+      "variant": "baseline",
+      "cases": 2,
+      "recall": null,
+      "recall_samples": 0,
+      "mrr": null,
+      "mrr_samples": 0,
+      "ndcg": null,
+      "ndcg_samples": 0,
+      "retrieval_ms": null,
+      "reranker_ms": null,
+      "end_to_end_ms": 19310.993649996817,
+      "human_score": null,
+      "human_reviewed": 0,
+      "judge_score": 0.525,
+      "judge_reviewed": 2
+    },
+    {
+      "variant": "dense",
+      "cases": 2,
+      "recall": 0.0,
+      "recall_samples": 1,
+      "mrr": 0,
+      "mrr_samples": 1,
+      "ndcg": 0.0,
+      "ndcg_samples": 1,
+      "retrieval_ms": 6706.428350000351,
+      "reranker_ms": 0.036699999327538535,
+      "end_to_end_ms": 20074.00360000247,
+      "human_score": null,
+      "human_reviewed": 0,
+      "judge_score": 0.8,
+      "judge_reviewed": 2
+    },
+    {
+      "variant": "hybrid",
+      "cases": 2,
+      "recall": 0.5,
+      "recall_samples": 1,
+      "mrr": 0.25,
+      "mrr_samples": 1,
+      "ndcg": 0.2640681225725909,
+      "ndcg_samples": 1,
+      "retrieval_ms": 581.3283499992394,
+      "reranker_ms": 0.009199997293762863,
+      "end_to_end_ms": 14776.65909999996,
+      "human_score": null,
+      "human_reviewed": 0,
+      "judge_score": 0.925,
+      "judge_reviewed": 2
+    },
+    {
+      "variant": "hybrid_rerank",
+      "cases": 2,
+      "recall": 0.0,
+      "recall_samples": 1,
+      "mrr": 0,
+      "mrr_samples": 1,
+      "ndcg": 0.0,
+      "ndcg_samples": 1,
+      "retrieval_ms": 567.4141499985126,
+      "reranker_ms": 7038.933549996727,
+      "end_to_end_ms": 24129.863149999437,
+      "human_score": null,
+      "human_reviewed": 0,
+      "judge_score": 0.85,
+      "judge_reviewed": 2
+    }
+  ],
+  "accuracy": null,
+  "llm_model": "qwen3.8-flash",
+  "max_tokens": 2048,
+  "parameters": {
+    "cases": [
+      {
+        "id": "cross-fork-copy",
+        "type": "cross_file",
+        "question": "结合 fork 和 uvmcopy，说明原始 xv6 如何复制子进程地址空间，以及分配失败时如何处理。",
+        "relevance": {
+          "59e41f6f499067df279856058137c3580d92ae337dfbc6c5ff57ecd7622447c1": 3,
+          "d9a559d224e7058b5723049ad7a6a1fd1bb7f198beafa68d7c1f82bad8df766f": 3
+        },
+        "reference_answer": "fork 调用 uvmcopy；uvmcopy 逐页 kalloc、memmove、mappages。错误时 uvmunmap 清理已复制页并返回 -1，fork 随后 freeproc、释放锁并返回 -1。",
+        "annotation_method": "developer source inspection, not independent human benchmark",
+        "annotation_status": "complete"
+      },
+      {
+        "id": "out-cuda",
+        "type": "out_of_scope",
+        "question": "本知识库中 xv6 的 CUDA GPU 调度器如何管理显存？",
+        "relevance": {},
+        "reference_answer": "所给原始 xv6 与资料不提供 CUDA GPU 调度器的实现，应指出证据不足，不编造该组件。",
+        "annotation_method": "developer source inspection, not independent human benchmark",
+        "annotation_status": "complete"
+      }
+    ],
+    "top_k": 5,
+    "candidates": 20,
+    "generate_answers": true,
+    "include_reranker": true
+  },
+  "limitations": "答案准确性须独立人工核验。无相关证据样本不计算 Recall 和 nDCG。延迟包含按需模型加载，正式实验应先预热并重复测量。",
+  "temperature": 0,
+  "dataset_hash": "eda2baa37b1c7c2ff75817320632a8a7e13889f3afcc1d2f884b6b3a82ed249a",
+  "reranker_model": "BAAI/bge-reranker-base",
+  "embedding_model": "intfloat/multilingual-e5-small",
+  "reasoning_effort": "low"
+}

@@ -1,10 +1,15 @@
 """Initialize application tables using an existing pgvector extension."""
+
 from sqlalchemy import text
-from .database import engine, Base
+
+from .database import Base, engine
+
 
 def initialize():
     with engine.begin() as conn:
-        installed = conn.scalar(text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector')"))
+        installed = conn.scalar(
+            text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector')")
+        )
         if not installed:
             database = conn.scalar(text("SELECT current_database()"))
             raise RuntimeError(
@@ -13,6 +18,7 @@ def initialize():
                 "Installing server files or enabling it in another database is insufficient."
             )
         Base.metadata.create_all(conn)
+
 
 if __name__ == "__main__":
     initialize()

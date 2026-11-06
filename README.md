@@ -75,7 +75,36 @@ LLM_MAX_TOKENS 控制统一输出预算，LLM_REASONING_EFFORT 为可选推理�
 
 ## 当前限制
 
-开发尚未完全验收。仍需扩充独立人工标注测试集并实际完成人工评分；当前只有明确标注来源的开发验证结果。认证和长任务进度可作为后续扩展。前端通过 React.lazy 拆分消息渲染、语法高亮、知识库与评估面板，构建不再出现大于 500 kB 的 chunk 提示。仅用于本机开发；长时间导入和评估目前为同步接口。
+五阶段的软件实现与本机验收已完成，逐项记录见 ACCEPTANCE.md。当前为课程实验与本机单用户应用，未实现多租户认证；公网部署前应先补齐认证。检索指标、模型辅助分与人工分分别保存，未伪造第三方人工评分。PDF 的图形和复杂表格语义、完整 C 语法树解析、超大规模 ANN 与 LangGraph 不属于本版承诺。
+
+导入与评估页面使用 PostgreSQL 持久化任务状态，进程内用一个后台线程池串行执行，不引入 Redis 或 Celery。进度、结果和错误可通过 GET /api/jobs/{id} 查看；启动时只将本机失活进程的未完成任务标记为失败，需重新提交以重试。推荐单个 Uvicorn worker。保留同步接口供脚本使用。
+
+任务接口：POST /api/import/jobs、POST /api/evaluation/jobs、POST /api/evaluation/{id}/judge。历史实验可重载和导出，辅助评分逐题保存并可续跑。模型辅助评分需要上游支持 JSON mode；失败会明确记录，不补造分数。
+
+留出集与完整对比见 evaluation/HELDOUT_REPORT.md：八题、32 条真实回答和32 条同模型辅助核验。题目与开发集分开，标注来源是开发者源码核对，不是第三方人工标注。留出集上 Dense 的排序指标更好，没有宣称 Hybrid 或 Reranker 必然提高效果。
+
+更换 Embedding 模型时必须保持数据库向量维度一致并完整重建索引，不要混用不同模型的向量。
+
+## 一体启动与验收
+
+```powershell
+uv sync
+pnpm --dir frontend install
+pnpm --dir frontend build
+uv run alembic upgrade head
+uv run uvicorn backend.api:app --host 127.0.0.1 --port 8000 --workers 1
+```
+
+构建后由 FastAPI 托管前端，访问 http://127.0.0.1:8000。开发模式可单独执行 pnpm --dir frontend dev，默认使用 5173 端口，通过代理调用 8000 后端。
+
+```powershell
+uv run ruff check backend migrations tests
+uv run pytest -q -p no:cacheprovider --basetemp=.test-tmp
+uv run python -m backend.verify_migrations
+pnpm --dir frontend lint
+```
+
+verify_migrations 在 PostgreSQL 临时表空间从零执行迁移，再回滚，不删除现有知识库。单元测试不需要 LLM 凭据；浏览器真实问答需要模型凭据和已导入数据。
 
 ## 浏览器验收
 
@@ -88,4 +117,4 @@ pnpm build
 pnpm exec playwright test
 ```
 
-截图和失败 trace 写入 tmp/browser，已从 Git 排除。测试包括首页、延迟加载、知识库保护标记、真实流式问答和引用抽屉。
+截图和失败 trace 写入 tmp/browser，已从 Git 排除。每轮截图使用独立目录，避免 Windows 文件占用。三项浏览器验收覆盖首页与按需加载、后台增量导入、策略对比与历史实验、真实流式问答和引用抽屉。历史实验测试自行创建标为 E2E 的接线验证记录，不依赖本机既有实验 ID，也不将它作为课程性能数据。
