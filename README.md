@@ -8,7 +8,7 @@
 
 ```powershell
 uv sync
-uv run python -m backend.init_db
+uv run alembic upgrade head
 uv run uvicorn backend.api:app --host 127.0.0.1 --port 8000
 ```
 
@@ -40,7 +40,9 @@ POST /api/import，请求示例：
 {"root":"data/xv6-labs-2022-impl","commit":"dc9153f"}
 ```
 
-该提交位于 util 分支的个人修改之前；其他实验分支必须分别审计，不能直接使用 HEAD。读取 Git 对象，不修改原始数据。来源、完整提交、路径用于区分版本，内容哈希用于增量导入。源码按函数和结构体边界切分，保留符号与原始行号。长段落进一步切分，当前不是完整 C 语法解析器。
+该提交位于 util 分支的个人修改之前；其他实验分支必须分别审计，不能直接使用 HEAD。读取 Git 对象，不修改原始数据。来源、完整提交、路径用于区分版本，内容哈希用于增量导入。源码按函数和结构体边界切分，保留符号与原始行号。长段落进一步切分，当前不是完整 C 语法解析器。普通目录导入可不传 commit，HTML 提取正文，行号明确标记基于提取文本。
+
+预置的 data/labs 和 data/xv6-labs-2022-impl 来源为系统文档，数据库持久化保护标记，API 禁止删除；普通导入文档可在确认后删除。搜索参数 version 可限制完整提交版本。当前已导入 79 个官方文档、570 个片段。
 
 ## 测试与评估
 
@@ -53,6 +55,12 @@ uv run python -m backend.evaluate evaluation/annotated.jsonl evaluation/results.
 
 检索评估比较 Dense、Hybrid、Hybrid + Reranker，输出 Recall@K、MRR@K、nDCG@K、检索和重排耗时。空相关集合的 Recall 和 nDCG 为 null。分数表示相关性，不能代替回答准确性。示例数据尚未标注，不是实际实验结果。
 
+聊天页高级面板支持粘贴标注 JSONL，运行实验和导出结果。API 为 POST /api/evaluation/run，generate_answers=true 可附加 Baseline 与各 RAG 方案回答，统一生成模型与 temperature=0，并记录端到端耗时。准确性为待人工核验，不自动赋分。检索日志与实验结果保存于数据库。
+
+evaluation/smoke.source-verified.jsonl 是开发者核对源码的单样例冒烟测试，smoke-results.json 为实际结果，不能视为独立评测或泛化性能结论。首次加载模型包含冷启动耗时，不能直接和热启动对比。
+
+聊天支持 SSE，接口为 POST /api/chat/stream；可选 Search 开关允许生成模型补充一次检索，不引入 Agent。引用绑定证据 ID。已实测生成、39 个流式 token 事件和最终引用。
+
 ## 当前限制
 
-开发尚未完成。待实现普通目录与 PDF 导入、Alembic 版本迁移、SSE、受限搜索工具、完整实验面板、生成准确性评估、分支过滤、并发消息约束与认证。仅用于本机开发。真实知识库规模和效果以运行记录为准。
+开发尚未完全验收。待完善 PDF 导入、多分支原始提交审计与批量导入、独立人工标注测试集、回答人工评分与分析、并发消息约束和认证。前端尚有较大构建包提示，未做浏览器视觉验收。仅用于本机开发；长时间导入和评估目前为同步接口。

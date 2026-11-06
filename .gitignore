@@ -8,3 +8,4 @@ data/
 .uv-cache/
 frontend/dist/
 *.tsbuildinfo
+.test-tmp*/

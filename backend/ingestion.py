@@ -11,25 +11,34 @@ def embedder():
 from .chunking import split
 def git(repo, *args):
     return subprocess.check_output(["git","-c",f"safe.directory={Path(repo).resolve().as_posix()}","-C",repo,*args])
-def ingest(db, root, commit):
+def ingest(db, root, commit=None):
     repo = str(Path(root).resolve())
-    if not commit: raise ValueError("必须指定已核验的原始 Git 提交")
-    version = git(repo,"rev-parse",commit+"^{commit}").decode().strip()
-    paths = git(repo,"ls-tree","-r","--name-only",version).decode().splitlines()
+    project_root=Path(__file__).resolve().parents[1]
+    is_system=Path(repo) in {(project_root/'data/labs').resolve(),(project_root/'data/xv6-labs-2022-impl').resolve()}
+    if commit:
+        version = git(repo,"rev-parse",commit+"^{commit}").decode().strip()
+        paths = git(repo,"ls-tree","-r","--name-only",version).decode().splitlines()
+        def entries():
+            for path in paths:
+                if Path(path).suffix.lower() not in {".md",".txt",".c",".h",".s"}: continue
+                content=git(repo,"show",f"{version}:{path}").decode("utf-8",errors="replace")
+                yield path,content,hashlib.sha256(content.encode()).hexdigest()
+    else:
+        if (Path(repo)/'.git').exists(): raise ValueError('Git repositories require an explicit audited commit')
+        from .sources import directory_files
+        version='directory-v1'
+        def entries(): return directory_files(repo)
     count=0
-    for path in paths:
-        if Path(path).suffix.lower() not in {".md",".txt",".c",".h",".s",".html"}: continue
-        content=git(repo,"show",f"{version}:{path}").decode("utf-8",errors="replace")
-        digest=hashlib.sha256(content.encode()).hexdigest()
+    for path,content,digest in entries():
         doc=db.scalar(select(Document).where(Document.source==repo,Document.version==version,Document.path==path))
         if doc and doc.content_hash==digest: continue
         if not doc:
-            doc=Document(source=repo,version=version,path=path,content_hash=digest); db.add(doc); db.flush()
+            doc=Document(source=repo,version=version,path=path,content_hash=digest,is_system=is_system); db.add(doc); db.flush()
         else:
             db.execute(delete(Chunk).where(Chunk.document_id==doc.id)); doc.content_hash=digest
         pieces=list(split(content,path))
         vectors=embedder().embed_documents(["passage: "+p[0] for p in pieces]) if pieces else []
         for (body,loc),vec in zip(pieces,vectors):
             cid=hashlib.sha256(f"{repo}:{version}:{path}:{loc['start_line']}:{body}".encode()).hexdigest()
-            db.add(Chunk(id=cid,document_id=doc.id,text=body,embedding=vec,location={**loc,"commit":version})); count+=1
+            db.add(Chunk(id=cid,document_id=doc.id,text=body,embedding=vec,location={**loc,"commit":version,"source":repo,"line_basis":"extracted_text" if path.endswith('.html') else "original"})); count+=1
     db.commit(); return count

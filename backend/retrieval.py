@@ -15,17 +15,24 @@ def rrf(rankings, k=60):
 def reranker():
     from sentence_transformers import CrossEncoder
     return CrossEncoder(settings.reranker_model,device="cpu",max_length=512)
-def search(db, query, strategy="hybrid", top_k=5, candidates=20, rerank=False, rrf_k=60):
-    start=time.perf_counter(); rows=list(db.scalars(select(Chunk))); byid={r.id:r for r in rows}; scores={}; rankings=[]
+def search(db, query, strategy="hybrid", top_k=5, candidates=20, rerank=False, rrf_k=60, version=None):
+    if strategy not in {'dense','bm25','hybrid'}: raise ValueError('Unknown retrieval strategy')
+    if not 1 <= top_k <= candidates <= 100: raise ValueError('Require 1 <= top_k <= candidates <= 100')
+    start=time.perf_counter()
+    scope=select(Chunk)
+    if version: scope=scope.where(Chunk.location['commit'].astext==version)
+    rows=list(db.scalars(scope)); byid={r.id:r for r in rows}; scores={}; rankings=[]
     if not rows: return {"results":[],"retrieval_ms":0,"reranker_ms":0}
     if strategy in {"dense","hybrid"}:
         vector=embedder().embed_query("query: "+query)
-        found=db.execute(select(Chunk.id,Chunk.embedding.cosine_distance(vector)).order_by(Chunk.embedding.cosine_distance(vector)).limit(candidates)).all()
+        dense=select(Chunk.id,Chunk.embedding.cosine_distance(vector))
+        if version: dense=dense.where(Chunk.location['commit'].astext==version)
+        found=db.execute(dense.order_by(Chunk.embedding.cosine_distance(vector),Chunk.id).limit(candidates)).all()
         rankings.append([cid for cid,d in found])
         for cid,d in found: scores.setdefault(cid,{})["cosine_similarity"]=1-float(d)
     if strategy in {"bm25","hybrid"}:
         values=BM25Okapi([tokens(r.text) or ["_"] for r in rows]).get_scores(tokens(query))
-        ordered=sorted(zip(rows,values),key=lambda x:-x[1])[:candidates]; rankings.append([r.id for r,s in ordered])
+        ordered=sorted(zip(rows,values),key=lambda x:(-x[1],x[0].id))[:candidates]; rankings.append([r.id for r,s in ordered])
         for r,s in ordered: scores.setdefault(r.id,{})["bm25"]=float(s)
     ids,fused=rrf(rankings,rrf_k)
     if strategy=="hybrid":

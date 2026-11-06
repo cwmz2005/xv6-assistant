@@ -1,0 +1,1 @@
+{"id":"vm-walkaddr","question":"walkaddr PTE_U","reference_answer":"walkaddr 在 PTE_U 未设置时返回 0，拒绝将该映射作为用户可访问地址翻译。","relevance":{"3c8ead5159a614ada20326dfb36f1f1d2361769e6367ec67cb902d211367392b":3},"type":"source_location","annotation_status":"complete","annotation_method":"developer source inspection; smoke test only, not an independent benchmark"}

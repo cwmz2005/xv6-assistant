@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import create_engine, String, Text, ForeignKey, UniqueConstraint
+from sqlalchemy import create_engine, String, Text, ForeignKey, UniqueConstraint, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from sqlalchemy.dialects.postgresql import JSONB
 from pgvector.sqlalchemy import Vector
@@ -13,6 +13,7 @@ class Document(Base):
     version: Mapped[str] = mapped_column(String)
     path: Mapped[str] = mapped_column(Text)
     content_hash: Mapped[str] = mapped_column(String)
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     __table_args__ = (UniqueConstraint("source", "version", "path"),)
 class Chunk(Base):
     __tablename__ = "chunks"

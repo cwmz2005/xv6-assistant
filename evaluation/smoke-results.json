@@ -1,0 +1,315 @@
+{
+  "created_at": "2026-11-06T14:12:32.501485+00:00",
+  "k": 5,
+  "candidates": 10,
+  "embedding_model": "intfloat/multilingual-e5-small",
+  "reranker_model": "BAAI/bge-reranker-base",
+  "scope": "retrieval_only",
+  "records": [
+    {
+      "case_id": "vm-walkaddr",
+      "strategy": "dense",
+      "rerank": false,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "results": [
+        {
+          "id": "3c8ead5159a614ada20326dfb36f1f1d2361769e6367ec67cb902d211367392b",
+          "text": "uint64\nwalkaddr(pagetable_t pagetable, uint64 va)\n{\n  pte_t *pte;\n  uint64 pa;\n\n  if(va >= MAXVA)\n    return 0;\n\n  pte = walk(pagetable, va, 0);\n  if(pte == 0)\n    return 0;\n  if((*pte & PTE_V) == 0)\n    return 0;\n  if((*pte & PTE_U) == 0)\n    return 0;\n  pa = PTE2PA(*pte);\n  return pa;\n}\n\n// add a mapping to the kernel page table.\n// only used when booting.\n// does not flush TLB or enable paging.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "walkaddr",
+            "end_line": 130,
+            "function": "walkaddr",
+            "start_line": 108
+          },
+          "scores": {
+            "cosine_similarity": 0.8712891416973403
+          },
+          "rank": 1
+        },
+        {
+          "id": "eb871485d03704b758d228dc806f8aeede2852a971607fd3a1bbd3bb34305367",
+          "text": "pte_t *\nwalk(pagetable_t pagetable, uint64 va, int alloc)\n{\n  if(va >= MAXVA)\n    panic(\"walk\");\n\n  for(int level = 2; level > 0; level--) {\n    pte_t *pte = &pagetable[PX(level, va)];\n    if(*pte & PTE_V) {\n      pagetable = (pagetable_t)PTE2PA(*pte);\n    } else {\n      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)\n        return 0;\n      memset(pagetable, 0, PGSIZE);\n      *pte = PA2PTE(pagetable) | PTE_V;\n    }\n  }\n  return &pagetable[PX(0, va)];\n}\n\n// Look up a virtual address, return the physical address,\n// or 0 if not mapped.\n// Can only be used to look up user pages.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "walk",
+            "end_line": 107,
+            "function": "walk",
+            "start_line": 85
+          },
+          "scores": {
+            "cosine_similarity": 0.8566620690625324
+          },
+          "rank": 2
+        },
+        {
+          "id": "3f05d5ed2ebdc693143623837556f2ab0ed92b4484e8a01fd3408615473f7a01",
+          "text": "void\nfreewalk(pagetable_t pagetable)\n{\n  // there are 2^9 = 512 PTEs in a page table.\n  for(int i = 0; i < 512; i++){\n    pte_t pte = pagetable[i];\n    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){\n      // this PTE points to a lower-level page table.\n      uint64 child = PTE2PA(pte);\n      freewalk((pagetable_t)child);\n      pagetable[i] = 0;\n    } else if(pte & PTE_V){\n      panic(\"freewalk: leaf\");\n    }\n  }\n  kfree((void*)pagetable);\n}\n\n// Free user memory pages,\n// then free page-table pages.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "freewalk",
+            "end_line": 290,
+            "function": "freewalk",
+            "start_line": 271
+          },
+          "scores": {
+            "cosine_similarity": 0.848807761144177
+          },
+          "rank": 3
+        },
+        {
+          "id": "580572517a6abf05b7e79a7ac7c8f3866d212b67a60b534fd4c36245e1aaf8ea",
+          "text": "void\nuvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)\n{\n  uint64 a;\n  pte_t *pte;\n\n  if((va % PGSIZE) != 0)\n    panic(\"uvmunmap: not aligned\");\n\n  for(a = va; a < va + npages*PGSIZE; a += PGSIZE){\n    if((pte = walk(pagetable, a, 0)) == 0)\n      panic(\"uvmunmap: walk\");\n    if((*pte & PTE_V) == 0)\n      panic(\"uvmunmap: not mapped\");\n    if(PTE_FLAGS(*pte) == PTE_V)\n      panic(\"uvmunmap: not a leaf\");\n    if(do_free){\n      uint64 pa = PTE2PA(*pte);\n      kfree((void*)pa);\n    }\n    *pte = 0;\n  }\n}\n\n// create an empty user page table.\n// returns 0 if out of memory.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "uvmunmap",
+            "end_line": 195,
+            "function": "uvmunmap",
+            "start_line": 170
+          },
+          "scores": {
+            "cosine_similarity": 0.8465675803084639
+          },
+          "rank": 4
+        },
+        {
+          "id": "59e41f6f499067df279856058137c3580d92ae337dfbc6c5ff57ecd7622447c1",
+          "text": "int\nuvmcopy(pagetable_t old, pagetable_t new, uint64 sz)\n{\n  pte_t *pte;\n  uint64 pa, i;\n  uint flags;\n  char *mem;\n\n  for(i = 0; i < sz; i += PGSIZE){\n    if((pte = walk(old, i, 0)) == 0)\n      panic(\"uvmcopy: pte should exist\");\n    if((*pte & PTE_V) == 0)\n      panic(\"uvmcopy: page not present\");\n    pa = PTE2PA(*pte);\n    flags = PTE_FLAGS(*pte);\n    if((mem = kalloc()) == 0)\n      goto err;\n    memmove(mem, (char*)pa, PGSIZE);\n    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){\n      kfree(mem);\n      goto err;\n    }\n  }\n  return 0;\n\n err:\n  uvmunmap(new, 0, i / PGSIZE, 1);\n  return -1;\n}\n\n// mark a PTE invalid for user access.\n// used by exec for the user stack guard page.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "uvmcopy",
+            "end_line": 336,
+            "function": "uvmcopy",
+            "start_line": 305
+          },
+          "scores": {
+            "cosine_similarity": 0.842695910609256
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 24275.059599996894,
+      "reranker_ms": 0.0261999957729131
+    },
+    {
+      "case_id": "vm-walkaddr",
+      "strategy": "hybrid",
+      "rerank": false,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "results": [
+        {
+          "id": "3c8ead5159a614ada20326dfb36f1f1d2361769e6367ec67cb902d211367392b",
+          "text": "uint64\nwalkaddr(pagetable_t pagetable, uint64 va)\n{\n  pte_t *pte;\n  uint64 pa;\n\n  if(va >= MAXVA)\n    return 0;\n\n  pte = walk(pagetable, va, 0);\n  if(pte == 0)\n    return 0;\n  if((*pte & PTE_V) == 0)\n    return 0;\n  if((*pte & PTE_U) == 0)\n    return 0;\n  pa = PTE2PA(*pte);\n  return pa;\n}\n\n// add a mapping to the kernel page table.\n// only used when booting.\n// does not flush TLB or enable paging.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "walkaddr",
+            "end_line": 130,
+            "function": "walkaddr",
+            "start_line": 108
+          },
+          "scores": {
+            "cosine_similarity": 0.8712891416973403,
+            "bm25": 11.225806767201288,
+            "rrf": 0.03278688524590164
+          },
+          "rank": 1
+        },
+        {
+          "id": "8a6caca2bfe34f310df0d8a183b680f58c2422d0616d9337a5e9fef4e55fe3fc",
+          "text": "static int\nloadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz)\n{\n  uint i, n;\n  uint64 pa;\n\n  for(i = 0; i < sz; i += PGSIZE){\n    pa = walkaddr(pagetable, va + i);\n    if(pa == 0)\n      panic(\"loadseg: address should exist\");\n    if(sz - i < PGSIZE)\n      n = sz - i;\n    else\n      n = PGSIZE;\n    if(readi(ip, 0, (uint64)pa, offset+i, n) != n)\n      return -1;\n  }\n  \n  return 0;\n}",
+          "location": {
+            "path": "kernel/exec.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "loadseg",
+            "end_line": 166,
+            "function": "loadseg",
+            "start_line": 147
+          },
+          "scores": {
+            "cosine_similarity": 0.8293076506463426,
+            "bm25": 5.454182828022523,
+            "rrf": 0.03036576949620428
+          },
+          "rank": 2
+        },
+        {
+          "id": "b2add4b5edc64f79b300789db94b1a0bfc9e4e6a969d07dbeca0f789f4f2043e",
+          "text": "int\ncopyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)\n{\n  uint64 n, va0, pa0;\n  int got_null = 0;\n\n  while(got_null == 0 && max > 0){\n    va0 = PGROUNDDOWN(srcva);\n    pa0 = walkaddr(pagetable, va0);\n    if(pa0 == 0)\n      return -1;\n    n = PGSIZE - (srcva - va0);\n    if(n > max)\n      n = max;\n\n    char *p = (char *) (pa0 + (srcva - va0));\n    while(n > 0){\n      if(*p == '\\0'){\n        *dst = '\\0';\n        got_null = 1;\n        break;\n      } else {\n        *dst = *p;\n      }\n      --n;\n      --max;\n      p++;\n      dst++;\n    }\n\n    srcva = va0 + PGSIZE;\n  }\n  if(got_null){\n    return 0;\n  } else {\n    return -1;\n  }\n}",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "copyinstr",
+            "end_line": 439,
+            "function": "copyinstr",
+            "start_line": 402
+          },
+          "scores": {
+            "cosine_similarity": 0.8351037004528239,
+            "bm25": 5.218092932248561,
+            "rrf": 0.030309988518943745
+          },
+          "rank": 3
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          },
+          "scores": {
+            "cosine_similarity": 0.8355264165683751,
+            "bm25": 3.9073179048186555,
+            "rrf": 0.029437229437229435
+          },
+          "rank": 4
+        },
+        {
+          "id": "77fc478f5211eb7233403114ceef5fcfd5e4c01ffcd9610f0f5e035da03d72b2",
+          "text": "void\nuvmclear(pagetable_t pagetable, uint64 va)\n{\n  pte_t *pte;\n  \n  pte = walk(pagetable, va, 0);\n  if(pte == 0)\n    panic(\"uvmclear\");\n  *pte &= ~PTE_U;\n}\n\n// Copy from kernel to user.\n// Copy len bytes from src to virtual address dstva in a given page table.\n// Return 0 on success, -1 on error.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "uvmclear",
+            "end_line": 350,
+            "function": "uvmclear",
+            "start_line": 337
+          },
+          "scores": {
+            "bm25": 5.996829697960765,
+            "rrf": 0.016129032258064516
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 199.70070000272244,
+      "reranker_ms": 0.02149999636458233
+    },
+    {
+      "case_id": "vm-walkaddr",
+      "strategy": "hybrid",
+      "rerank": true,
+      "metrics": {
+        "recall": 1.0,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      "results": [
+        {
+          "id": "3c8ead5159a614ada20326dfb36f1f1d2361769e6367ec67cb902d211367392b",
+          "text": "uint64\nwalkaddr(pagetable_t pagetable, uint64 va)\n{\n  pte_t *pte;\n  uint64 pa;\n\n  if(va >= MAXVA)\n    return 0;\n\n  pte = walk(pagetable, va, 0);\n  if(pte == 0)\n    return 0;\n  if((*pte & PTE_V) == 0)\n    return 0;\n  if((*pte & PTE_U) == 0)\n    return 0;\n  pa = PTE2PA(*pte);\n  return pa;\n}\n\n// add a mapping to the kernel page table.\n// only used when booting.\n// does not flush TLB or enable paging.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "walkaddr",
+            "end_line": 130,
+            "function": "walkaddr",
+            "start_line": 108
+          },
+          "scores": {
+            "cosine_similarity": 0.8712891416973403,
+            "bm25": 11.225806767201288,
+            "rrf": 0.03278688524590164,
+            "cross_encoder": 0.9382911324501038
+          },
+          "rank": 1
+        },
+        {
+          "id": "77fc478f5211eb7233403114ceef5fcfd5e4c01ffcd9610f0f5e035da03d72b2",
+          "text": "void\nuvmclear(pagetable_t pagetable, uint64 va)\n{\n  pte_t *pte;\n  \n  pte = walk(pagetable, va, 0);\n  if(pte == 0)\n    panic(\"uvmclear\");\n  *pte &= ~PTE_U;\n}\n\n// Copy from kernel to user.\n// Copy len bytes from src to virtual address dstva in a given page table.\n// Return 0 on success, -1 on error.",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "uvmclear",
+            "end_line": 350,
+            "function": "uvmclear",
+            "start_line": 337
+          },
+          "scores": {
+            "bm25": 5.996829697960765,
+            "rrf": 0.016129032258064516,
+            "cross_encoder": 0.286117821931839
+          },
+          "rank": 2
+        },
+        {
+          "id": "41dd7cde5d00deebe8b32726f69e690a7de6dc99e5cbe7b0f075a31902f6b480",
+          "text": "// vm.c\nvoid            kvminit(void);\nvoid            kvminithart(void);\nvoid            kvmmap(pagetable_t, uint64, uint64, uint64, int);\nint             mappages(pagetable_t, uint64, uint64, uint64, int);\npagetable_t     uvmcreate(void);\nvoid            uvmfirst(pagetable_t, uchar *, uint);\nuint64          uvmalloc(pagetable_t, uint64, uint64, int);\nuint64          uvmdealloc(pagetable_t, uint64, uint64);\nint             uvmcopy(pagetable_t, pagetable_t, uint64);\nvoid            uvmfree(pagetable_t, uint64);\nvoid            uvmunmap(pagetable_t, uint64, uint64, int);\nvoid            uvmclear(pagetable_t, uint64);\npte_t *         walk(pagetable_t, uint64, int);\nuint64          walkaddr(pagetable_t, uint64);\nint             copyout(pagetable_t, uint64, char *, uint64);\nint             copyin(pagetable_t, char *, uint64, uint64);\nint             copyinstr(pagetable_t, char *, uint64, uint64);\n\n// plic.c\nvoid            plicinit(void);\nvoid            plicinithart(void);\nint             plic_claim(void);\nvoid            plic_complete(int);\n\n// virtio_disk.c\nvoid            virtio_disk_init(void);\nvoid            virtio_disk_rw(struct buf *, int);\nvoid            virtio_disk_intr(void);\n\n// number of elements in fixed-size array\n#define NELEM(x) (sizeof(x)/sizeof((x)[0]))",
+          "location": {
+            "path": "kernel/defs.h",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "",
+            "end_line": 189,
+            "function": "",
+            "start_line": 158
+          },
+          "scores": {
+            "cosine_similarity": 0.8355264165683751,
+            "bm25": 3.9073179048186555,
+            "rrf": 0.029437229437229435,
+            "cross_encoder": 0.18399807810783386
+          },
+          "rank": 3
+        },
+        {
+          "id": "b2add4b5edc64f79b300789db94b1a0bfc9e4e6a969d07dbeca0f789f4f2043e",
+          "text": "int\ncopyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)\n{\n  uint64 n, va0, pa0;\n  int got_null = 0;\n\n  while(got_null == 0 && max > 0){\n    va0 = PGROUNDDOWN(srcva);\n    pa0 = walkaddr(pagetable, va0);\n    if(pa0 == 0)\n      return -1;\n    n = PGSIZE - (srcva - va0);\n    if(n > max)\n      n = max;\n\n    char *p = (char *) (pa0 + (srcva - va0));\n    while(n > 0){\n      if(*p == '\\0'){\n        *dst = '\\0';\n        got_null = 1;\n        break;\n      } else {\n        *dst = *p;\n      }\n      --n;\n      --max;\n      p++;\n      dst++;\n    }\n\n    srcva = va0 + PGSIZE;\n  }\n  if(got_null){\n    return 0;\n  } else {\n    return -1;\n  }\n}",
+          "location": {
+            "path": "kernel/vm.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "copyinstr",
+            "end_line": 439,
+            "function": "copyinstr",
+            "start_line": 402
+          },
+          "scores": {
+            "cosine_similarity": 0.8351037004528239,
+            "bm25": 5.218092932248561,
+            "rrf": 0.030309988518943745,
+            "cross_encoder": 0.11124186217784882
+          },
+          "rank": 4
+        },
+        {
+          "id": "8a6caca2bfe34f310df0d8a183b680f58c2422d0616d9337a5e9fef4e55fe3fc",
+          "text": "static int\nloadseg(pagetable_t pagetable, uint64 va, struct inode *ip, uint offset, uint sz)\n{\n  uint i, n;\n  uint64 pa;\n\n  for(i = 0; i < sz; i += PGSIZE){\n    pa = walkaddr(pagetable, va + i);\n    if(pa == 0)\n      panic(\"loadseg: address should exist\");\n    if(sz - i < PGSIZE)\n      n = sz - i;\n    else\n      n = PGSIZE;\n    if(readi(ip, 0, (uint64)pa, offset+i, n) != n)\n      return -1;\n  }\n  \n  return 0;\n}",
+          "location": {
+            "path": "kernel/exec.c",
+            "commit": "dc9153fcb9c9b762dfaae9f586aecdaf04fb68fe",
+            "section": "loadseg",
+            "end_line": 166,
+            "function": "loadseg",
+            "start_line": 147
+          },
+          "scores": {
+            "cosine_similarity": 0.8293076506463426,
+            "bm25": 5.454182828022523,
+            "rrf": 0.03036576949620428,
+            "cross_encoder": 0.08217444270849228
+          },
+          "rank": 5
+        }
+      ],
+      "retrieval_ms": 184.70450000313576,
+      "reranker_ms": 8811.249999998836
+    }
+  ]
+}
