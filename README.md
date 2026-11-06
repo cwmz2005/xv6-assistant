@@ -69,4 +69,17 @@ evaluation/smoke.source-verified.jsonl 是开发者核对源码的单样例冒�
 
 ## 当前限制
 
-开发尚未完全验收。待完善独立人工标注测试集、回答人工评分与分析、并发消息约束和认证。前端通过 React.lazy 拆分消息渲染、语法高亮、知识库与评估面板，构建不再出现大于 500 kB 的 chunk 提示。浏览器视觉验收因 Computer Use 无可用浏览器和 Windows 控制管道而未完成。仅用于本机开发；长时间导入和评估目前为同步接口。
+开发尚未完全验收。待完善独立人工标注测试集、回答人工评分与分析、并发消息约束和认证。前端通过 React.lazy 拆分消息渲染、语法高亮、知识库与评估面板，构建不再出现大于 500 kB 的 chunk 提示。仅用于本机开发；长时间导入和评估目前为同步接口。
+
+## 浏览器验收
+
+使用独立 Playwright Chromium，不依赖 Codex 浏览器。测试会启动本地 8010 端口后端，使用已有构建产物。需要先执行 pnpm build；真实问答用例需要 .env 中的 LLM 配置和已导入知识库，会清理自己创建的测试会话。
+
+```powershell
+cd frontend
+pnpm exec playwright install chromium
+pnpm build
+pnpm exec playwright test
+```
+
+截图和失败 trace 写入 tmp/browser，已从 Git 排除。测试包括首页、延迟加载、知识库保护标记、真实流式问答和引用抽屉。

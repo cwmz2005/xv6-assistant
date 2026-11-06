@@ -10,3 +10,5 @@ frontend/dist/
 *.tsbuildinfo
 .test-tmp*/
 tmp/
+frontend/playwright-report/
+frontend/test-results/
