@@ -1,0 +1,9 @@
+[project]
+name = "xv6-rag"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["fastapi", "uvicorn[standard]", "pydantic-settings", "sqlalchemy", "psycopg[binary]", "pgvector", "rank-bm25", "sentence-transformers", "langchain-openai", "langchain-huggingface", "alembic"]
+[dependency-groups]
+dev = ["pytest", "httpx"]
+[tool.pytest.ini_options]
+pythonpath = ["."]
