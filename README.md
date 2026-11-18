@@ -67,6 +67,10 @@ evaluation/smoke.source-verified.jsonl 是开发者核对源码的单样例冒�
 
 聊天支持 SSE，接口为 POST /api/chat/stream；补充搜索开关允许模型按需多轮检索，重复查询复用结果，连续两轮无新增证据时结束。默认不设次数上限，可在问答设置或 tool_call_limit 参数中指定。引用只绑定真实证据；唯一的短 ID 前缀会恢复为完整引用，歧义引用移除。
 
+模型可见的思考与检索过程以可展开卡片显示在回答上方，并随 assistant 消息保存到会话历史。系统 Prompt、每次调用的完整模型输入、RAG 注入证据、工具检索结果与候选融合分数始终通过 detail 事件实时返回，并随消息落库；点击消息右上角的「生成详情」在独立抽屉中查看，历史会话同样可查看。聊天默认开启 Cross-Encoder 重排序。
+
+过程卡片优先展示上游返回的 reasoning_content 显式推理；上游不返回时只展示可观测的检索与工具调用，不伪造思考内容。
+
 LLM_MAX_TOKENS 控制统一输出预算，LLM_REASONING_EFFORT 为可选推理强度。本机已验证 low，其他兼容 API 不支持时应留空。生成返回 finish_reason、usage 和 complete 元数据；达到输出上限会明确提示回答未完成，不能作为完整回答计分。
 
 开发集真实对比与失败分析见 evaluation/ANALYSIS.md。六题结果是开发者源码核对集，不是独立人工测试集。四方案生成的八条回答保存于 development-generation-results.json，未填人工准确率，且旧结果存在截断和短引用未关联的问题，保留原样供分析。

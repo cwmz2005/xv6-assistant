@@ -103,6 +103,87 @@ def test_unique_short_citation_resolves_to_real_evidence(monkeypatch):
     assert "[" + cid + "]" in answer and citations == [{"id": cid}]
 
 
+def test_trace_and_details_are_streamed_and_persisted(monkeypatch):
+    from langchain_core.messages import AIMessage, ToolMessage
+
+    class Model:
+        def bind_tools(self, schema):
+            return self
+
+        def invoke(self, messages):
+            if any(isinstance(m, ToolMessage) for m in messages):
+                return AIMessage(content="answer")
+            return AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "knowledge_search",
+                        "args": {"query": "copyin"},
+                        "id": "1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+
+    monkeypatch.setattr(generation, "model", lambda: Model())
+    tool_events = []
+    detail_events = []
+    streamed = []
+    trace = []
+
+    def search(query):
+        tool_events.append(query)
+        return {
+            "results": [
+                {
+                    "id": "a" * 64,
+                    "text": "evidence",
+                    "location": {"path": "kernel/vm.c", "start_line": 1},
+                    "scores": {"rrf": 0.5},
+                }
+            ],
+            "candidate_scores": [
+                {"id": "a" * 64, "ranks": {"dense": 1}, "scores": {"rrf": 0.5}}
+            ],
+            "retrieval_ms": 3.0,
+        }
+
+    trace_token = generation.trace_sink.set(streamed.append)
+    detail_token = generation.detail_sink.set(detail_events.append)
+    try:
+        with generation.collect_details() as collected:
+            answer, citations, _ = generation.generate(
+                "question", [], [], search_tool=search, trace=trace
+            )
+    finally:
+        generation.detail_sink.reset(detail_token)
+        generation.trace_sink.reset(trace_token)
+
+    assert answer == "answer" and citations == []
+    assert tool_events == ["copyin"]
+    assert [step["type"] for step in trace] == ["search", "answer"]
+    assert trace[0]["status"] == "done" and trace[0]["added"] == 1
+    assert [step["status"] for step in streamed if step["type"] == "search"] == [
+        "running",
+        "done",
+    ]
+    assert [event["type"] for event in detail_events] == [
+        "system_prompt",
+        "prompt",
+        "tool_call",
+        "tool_result",
+        "prompt",
+        "final_context",
+    ]
+    assert collected == detail_events
+    assert "xv6" in detail_events[0]["text"]
+    assert detail_events[1]["messages"][0]["type"] == "system"
+    assert detail_events[1]["messages"][-1]["type"] == "human"
+    assert detail_events[3]["results"][0]["id"] == "a" * 64
+    assert detail_events[3]["candidate_scores"][0]["ranks"] == {"dense": 1}
+    assert detail_events[4]["messages"][-1]["type"] == "tool"
+
+
 def test_truncated_response_is_explicit(monkeypatch):
     from langchain_core.messages import AIMessage
 

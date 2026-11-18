@@ -6,7 +6,7 @@
 
 - Python 3.12、uv、FastAPI、Pydantic Settings，凭据读取 .env，真实配置从 Git 排除。
 - PostgreSQL 统一保存 documents、chunks、sessions、messages、retrieval_logs；pgvector 384 维精确余弦检索，无默认 ANN。
-- Alembic 0001–0004，包含系统文档保护、索引处理版本和消息顺序约束。
+- Alembic 0001–0006，包含系统文档保护、索引处理版本、消息顺序约束和生成过程 trace / details 列。
 - 空表迁移在 PostgreSQL 临时表空间实测通过，随后回滚；不是只验证已有数据库能启动。
 
 ## 第二阶段：数据导入与基础检索
@@ -34,6 +34,7 @@
 - PostgreSQL advisory lock保护同会话并发生成和删除，忙时409，消息顺序有唯一约束。
 - pnpm create vite官方React/TypeScript脚手架、Ant Design中文locale、Markdown与代码高亮。
 - 聊天界面、独立知识库/问答设置/实验/引用抽屉、源码版本标签、系统文档保护与普通文档确认删除。
+- 思考与检索过程可展开/收起并随消息持久化；系统 Prompt、完整模型输入、RAG 注入证据、工具检索与候选分数经 SSE 实时返回并落库，在独立详情抽屉中查看，历史会话同样可用。
 - React.lazy分包，重组件按需加载，构建无大于500 kB的chunk提示。
 - 后台导入/评估/模型核验任务进度、结果与失败持久化；恢复时区分存活与失活工作进程。
 

@@ -17,10 +17,13 @@ import {
 } from "antd";
 import { api } from "./api/client";
 import { streamChat } from "./api/stream";
-import type { Evidence, Message } from "./types";
+import type { DetailEvent, Evidence, Message, TraceStep } from "./types";
 const MessageCard = lazy(() => import("./components/MessageCard"));
 const KnowledgePanel = lazy(() => import("./components/KnowledgePanel"));
 const EvaluationPanel = lazy(() => import("./components/EvaluationPanel"));
+const GenerationDetails = lazy(
+  () => import("./components/GenerationDetails"),
+);
 type Panel =
   | "knowledge"
   | "settings"
@@ -28,6 +31,9 @@ type Panel =
   | "evidence"
   | "retrieval"
   | undefined;
+type DetailSource =
+  | { kind: "live" }
+  | { kind: "message"; events: DetailEvent[] };
 const RetrievalPanel = lazy(() => import("./components/RetrievalPanel"));
 export default function ChatWorkspace() {
   const [sessions, setSessions] = useState<{ id: string; title: string }[]>([]),
@@ -41,7 +47,7 @@ export default function ChatWorkspace() {
   const [toolLimit, setToolLimit] = useState<number | null>(null);
   const [rag, setRag] = useState(true),
     [tools, setTools] = useState(false),
-    [rerank, setRerank] = useState(false),
+    [rerank, setRerank] = useState(true),
     [strategy, setStrategy] = useState("hybrid");
   const [top, setTop] = useState(5),
     [candidates, setCandidates] = useState(20),
@@ -52,6 +58,9 @@ export default function ChatWorkspace() {
     [panel, setPanel] = useState<Panel>();
   const [evidence, setEvidence] = useState<Evidence>(),
     [retrieval, setRetrieval] = useState<Comparison>();
+  const [liveTrace, setLiveTrace] = useState<TraceStep[]>([]),
+    [liveDetails, setLiveDetails] = useState<DetailEvent[]>([]),
+    [detailSource, setDetailSource] = useState<DetailSource>();
   const bottom = useRef<HTMLDivElement>(null);
   const refresh = () =>
     api<{ id: string; title: string }[]>("sessions").then(setSessions);
@@ -63,7 +72,7 @@ export default function ChatWorkspace() {
   }, []);
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
-  }, [draft, messages]);
+  }, [draft, messages, liveTrace]);
   const query = () => ({
     query: question,
     strategy,
@@ -73,16 +82,48 @@ export default function ChatWorkspace() {
     rrf_k: rrf,
     version,
   });
+  const resetLive = () => {
+    setDraft("");
+    setLiveTrace([]);
+    setLiveDetails([]);
+  };
+  const resetDetails = () => setDetailSource(undefined);
+  const openDetails = (items: DetailEvent[]) =>
+    setDetailSource({ kind: "message", events: items });
+  const openLiveDetails = () => setDetailSource({ kind: "live" });
+  const detailOpen = detailSource !== undefined;
+  const shownDetails =
+    detailSource?.kind === "live" ? liveDetails : (detailSource?.events ?? []);
+  const upsertTrace = (step: TraceStep) =>
+    setLiveTrace((previous) => {
+      const index = previous.findIndex((item) => item.id === step.id);
+      if (index < 0) return [...previous, step];
+      const next = [...previous];
+      const current = next[index];
+      next[index] =
+        step.status === "delta"
+          ? {
+              ...current,
+              ...step,
+              text: (current.text ?? "") + (step.text ?? ""),
+            }
+          : { ...current, ...step };
+      return next;
+    });
   async function create() {
     const session = await api<{ id: string }>("sessions", {});
     setSid(session.id);
     setMessages([]);
+    resetLive();
+    resetDetails();
     await refresh();
     return session.id;
   }
   async function load(id: string) {
     if (busy) return;
     setSid(id);
+    resetLive();
+    resetDetails();
     setMessages(await api<Message[]>("sessions/" + id + "/messages"));
   }
   async function send() {
@@ -97,7 +138,8 @@ export default function ChatWorkspace() {
         { role: "user", content: text, citations: [] },
       ]);
       setQuestion("");
-      setDraft("");
+      resetLive();
+      resetDetails();
       const result = await streamChat(
         {
           ...query(),
@@ -107,7 +149,12 @@ export default function ChatWorkspace() {
           tools,
           tool_call_limit: toolLimit,
         },
-        (token) => setDraft((v) => v + token),
+        {
+          onToken: (token) => setDraft((v) => v + token),
+          onTrace: upsertTrace,
+          onDetail: (event) =>
+            setLiveDetails((previous) => [...previous, event]),
+        },
       );
       setMessages((v) => [
         ...v,
@@ -115,9 +162,16 @@ export default function ChatWorkspace() {
           role: "assistant",
           content: result.answer,
           citations: result.citations,
+          trace: result.trace ?? [],
+          details: result.details ?? [],
         },
       ]);
-      setDraft("");
+      setDetailSource((current) =>
+        current?.kind === "live"
+          ? { kind: "message", events: result.details ?? [] }
+          : current,
+      );
+      resetLive();
       await refresh();
     } catch (e) {
       setError(String(e));
@@ -164,6 +218,8 @@ export default function ChatWorkspace() {
             setSid("");
             setMessages([]);
             setQuestion("");
+            resetLive();
+            resetDetails();
           }}
         >
           ＋ 新会话
@@ -219,7 +275,7 @@ export default function ChatWorkspace() {
               onClose={() => setError("")}
             />
           )}
-          {!messages.length && !draft ? (
+          {!messages.length && !draft && !liveTrace.length ? (
             <div className="welcome">
               <div className="eyebrow">XV6 / RISCV</div>
               <h1>从一个问题，读懂内核。</h1>
@@ -240,17 +296,31 @@ export default function ChatWorkspace() {
           ) : (
             <Suspense fallback={<Spin />}>
               {messages.map((m, i) => (
-                <MessageCard key={i} message={m} onCitation={openEvidence} />
-              ))}
-              {draft && (
                 <MessageCard
-                  message={{ role: "assistant", content: draft, citations: [] }}
+                  key={i}
+                  message={m}
                   onCitation={openEvidence}
+                  onDetails={openDetails}
+                />
+              ))}
+              {(draft || liveTrace.length > 0) && (
+                <MessageCard
+                  key="live"
+                  streaming
+                  message={{
+                    role: "assistant",
+                    content: draft,
+                    citations: [],
+                    trace: liveTrace,
+                    details: liveDetails,
+                  }}
+                  onCitation={openEvidence}
+                  onDetails={openLiveDetails}
                 />
               )}
             </Suspense>
           )}
-          {busy && !draft && (
+          {busy && !draft && !liveTrace.length && (
             <div className="thinking">
               <Spin size="small" /> 正在处理
             </div>
@@ -444,6 +514,17 @@ export default function ChatWorkspace() {
           {panel === "retrieval" && retrieval && (
             <RetrievalPanel comparison={retrieval} onEvidence={openEvidence} />
           )}
+        </Suspense>
+      </Drawer>
+      <Drawer
+        title="生成详情"
+        width={640}
+        open={detailOpen}
+        onClose={() => setDetailSource(undefined)}
+        destroyOnHidden
+      >
+        <Suspense fallback={<Spin />}>
+          <GenerationDetails events={shownDetails} onEvidence={openEvidence} />
         </Suspense>
       </Drawer>
     </div>

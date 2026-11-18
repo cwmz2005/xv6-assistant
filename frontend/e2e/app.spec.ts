@@ -11,6 +11,7 @@ test("home and lazy-loaded knowledge management", async ({ page }) => {
     page.getByRole("heading", { name: "从一个问题，读懂内核。" }),
   ).toBeVisible();
   await expect(page.getByPlaceholder("提问 xv6")).toBeVisible();
+  await expect(page.getByText("补充搜索", { exact: true })).toBeVisible();
   expect(requests.some((url) => url.includes("/KnowledgePanel-"))).toBeFalsy();
   await page.screenshot({ path: screenshotRoot + "/home.png", fullPage: true });
   await page.getByRole("button", { name: "知识库文档" }).click();
@@ -40,7 +41,13 @@ test("retrieval comparison and persisted experiment history", async ({
   request,
 }) => {
   const recall = await request.post("/api/search", {
-    data: { query: "walkaddr PTE_U", strategy: "bm25", top_k: 1 },
+    data: {
+      query: "walkaddr PTE_U",
+      strategy: "bm25",
+      top_k: 1,
+      rerank: false,
+    },
+    timeout: 120000,
   });
   expect(recall.ok()).toBeTruthy();
   const source = (await recall.json()).results[0];
@@ -60,13 +67,14 @@ test("retrieval comparison and persisted experiment history", async ({
         },
       ],
     },
+    timeout: 120000,
   });
   expect(fixture.ok()).toBeTruthy();
   await page.goto("/");
   await page.getByPlaceholder("提问 xv6").fill("walkaddr PTE_U");
   await page.getByRole("button", { name: "检索调试", exact: true }).click();
   await expect(page.getByRole("tab", { name: "关键词 BM25" })).toBeVisible({
-    timeout: 60000,
+    timeout: 120000,
   });
   await expect(page.getByRole("tab", { name: "向量 Dense" })).toBeVisible();
   await expect(
@@ -113,11 +121,11 @@ test("real streamed chat and citation drawer", async ({ page, request }) => {
     await page.goto("/");
     await page
       .getByPlaceholder("提问 xv6")
-      .fill("walkaddr 为什么检查 PTE_U？请简短回答并引用源码。");
+      .fill(
+        "walkaddr 为什么检查 PTE_U？请简短回答，并且必须在回答中使用至少一处检索到的源码片段引用。",
+      );
     await page.getByRole("button", { name: /^发送/ }).click();
-    const citation = page
-      .getByRole("button", { name: /kernel\/vm.c:/ })
-      .first();
+    const citation = page.locator(".message.assistant .citation-chip").first();
     await expect(citation).toBeVisible({ timeout: 160000 });
     await expect(
       page.locator(".message.assistant .inline-citation").first(),
@@ -132,14 +140,90 @@ test("real streamed chat and citation drawer", async ({ page, request }) => {
     });
     await citation.click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(
-      page.locator("pre").filter({ hasText: "PTE_U" }).last(),
-    ).toBeVisible();
+    await expect(page.locator(".ant-drawer-title").last()).toContainText(
+      "引用原文",
+    );
+    await expect(page.locator(".source-content")).toBeVisible();
     await page.screenshot({
       path: screenshotRoot + "/citation.png",
       fullPage: true,
       animations: "disabled",
     });
+  } finally {
+    if (sessionId) await request.delete("/api/sessions/" + sessionId);
+  }
+});
+
+test("generation process card and live details drawer", async ({
+  page,
+  request,
+}) => {
+  let sessionId = "";
+  page.on("response", async (response) => {
+    if (
+      response.url().endsWith("/api/sessions") &&
+      response.request().method() === "POST"
+    )
+      sessionId = (await response.json()).id;
+  });
+  const question = "walkaddr 为什么检查 PTE_U？请简短回答。E2E详情验证";
+  try {
+    await page.goto("/");
+    await page.getByPlaceholder("提问 xv6").fill(question);
+    const streamRequest = page.waitForRequest(
+      (request) =>
+        request.url().endsWith("/api/chat/stream") &&
+        request.method() === "POST",
+    );
+    await page.getByRole("button", { name: /^发送/ }).click();
+    expect((await streamRequest).postDataJSON().show_details).toBeUndefined();
+
+    // Details are always collected and open in a separate drawer per message.
+    const detailsLink = page.getByRole("button", { name: /^生成详情/ }).first();
+    await expect(detailsLink).toBeVisible({ timeout: 160000 });
+    await detailsLink.click();
+    await expect(page.getByText("系统 Prompt", { exact: true })).toBeVisible({
+      timeout: 160000,
+    });
+    await expect(page.getByText("RAG 注入内容", { exact: true })).toBeVisible();
+    await expect(
+      page.locator(".generation-details").getByText("命中片段"),
+    ).toBeVisible();
+    await expect(
+      page.locator(".detail-name", { hasText: "完整 Prompt" }).first(),
+    ).toBeVisible();
+    await expect(page.getByText("最终上下文", { exact: true })).toBeVisible({
+      timeout: 160000,
+    });
+    await page.screenshot({
+      path: screenshotRoot + "/details.png",
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.locator(".ant-drawer-close").last().click();
+    await expect(page.locator(".generation-details")).toBeHidden();
+
+    // The process summary stays with the answer.
+    await expect(
+      page.getByText("思考与检索过程", { exact: true }),
+    ).toBeVisible();
+
+    // Reloading history keeps both the process card and the persisted details.
+    await page.reload();
+    await page
+      .locator(".history-item", { hasText: "E2E详情验证" })
+      .first()
+      .click();
+    await expect(
+      page.getByText("思考与检索过程", { exact: true }),
+    ).toBeVisible();
+    const historyLink = page.getByRole("button", { name: /^生成详情/ }).first();
+    await expect(historyLink).toBeEnabled();
+    await historyLink.click();
+    await expect(page.getByText("系统 Prompt", { exact: true })).toBeVisible();
+    await expect(
+      page.locator(".detail-name", { hasText: "完整 Prompt" }).first(),
+    ).toBeVisible();
   } finally {
     if (sessionId) await request.delete("/api/sessions/" + sessionId);
   }

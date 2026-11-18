@@ -1,7 +1,22 @@
+import type { DetailEvent, Evidence, TraceStep } from "../types";
+
+export type StreamResult = {
+  answer: string;
+  citations: Evidence[];
+  trace?: TraceStep[];
+  details?: DetailEvent[];
+};
+
+export type StreamHandlers = {
+  onToken: (text: string) => void;
+  onTrace?: (step: TraceStep) => void;
+  onDetail?: (event: DetailEvent) => void;
+};
+
 export async function streamChat(
   body: unknown,
-  onToken: (text: string) => void,
-): Promise<{ answer: string; citations: import("../types").Evidence[] }> {
+  handlers: StreamHandlers,
+): Promise<StreamResult> {
   const response = await fetch("/api/chat/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -28,7 +43,9 @@ export async function streamChat(
         ?.slice(6);
       if (!data) continue;
       const payload = JSON.parse(data);
-      if (event === "token") onToken(payload.text);
+      if (event === "token") handlers.onToken(payload.text);
+      if (event === "trace") handlers.onTrace?.(payload);
+      if (event === "detail") handlers.onDetail?.(payload);
       if (event === "error") throw Error(payload.message);
       if (event === "done") return payload;
     }

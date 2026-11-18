@@ -35,7 +35,7 @@ class Query(BaseModel):
     strategy: str = Field(default="hybrid", pattern="^(dense|bm25|hybrid)$")
     top_k: int = Field(default=5, ge=1, le=30)
     candidates: int = Field(default=20, ge=1, le=100)
-    rerank: bool = False
+    rerank: bool = True
     rrf_k: int = Field(default=60, ge=1)
     version: str | None = None
 
@@ -194,7 +194,13 @@ def create_session():
 def messages(sid: str):
     with DB() as db:
         return [
-            {"role": m.role, "content": m.content, "citations": m.citations}
+            {
+                "role": m.role,
+                "content": m.content,
+                "citations": m.citations,
+                "trace": m.trace or [],
+                "details": m.details or [],
+            }
             for m in db.scalars(
                 select(Message)
                 .where(Message.session_id == sid)
@@ -226,6 +232,13 @@ def chat(q: Chat):
 
 
 def chat_impl(q: Chat):
+    from .generation import collect_details
+
+    with collect_details() as details:
+        return _chat_impl(q, details)
+
+
+def _chat_impl(q: Chat, details):
     if not settings.llm_api_key or not settings.llm_model:
         raise HTTPException(503, "请配置 LLM_API_KEY 和 LLM_MODEL")
 
@@ -249,7 +262,12 @@ def chat_impl(q: Chat):
                 db,
                 **{
                     **q.model_dump(
-                        exclude={"session_id", "rag", "tools", "tool_call_limit"}
+                        exclude={
+                            "session_id",
+                            "rag",
+                            "tools",
+                            "tool_call_limit",
+                        }
                     ),
                     "query": effective_query,
                 },
@@ -258,7 +276,45 @@ def chat_impl(q: Chat):
             else {"results": []}
         )
         evidence = found["results"]
-        from .generation import generate, generation_info
+        from .generation import (
+            emit_detail,
+            emit_trace,
+            generate,
+            generation_info,
+        )
+
+        trace = []
+        if q.rag:
+            step = {
+                "id": "retrieval-initial",
+                "type": "retrieval",
+                "status": "done",
+                "query": effective_query,
+                "count": len(evidence),
+                "strategy": q.strategy,
+                "rerank": q.rerank,
+                "retrieval_ms": found.get("retrieval_ms"),
+                "reranker_ms": found.get("reranker_ms"),
+            }
+            trace.append(step)
+            emit_trace(step)
+            emit_detail(
+                {
+                    "id": "rag-context",
+                    "type": "rag_context",
+                    "query": effective_query,
+                    "strategy": q.strategy,
+                    "top_k": q.top_k,
+                    "candidates": q.candidates,
+                    "rerank": q.rerank,
+                    "rrf_k": q.rrf_k,
+                    "version": q.version,
+                    "retrieval_ms": found.get("retrieval_ms"),
+                    "reranker_ms": found.get("reranker_ms"),
+                    "results": evidence,
+                    "candidate_scores": found.get("candidate_scores", []),
+                }
+            )
 
         answer, citations, tool_log = generate(
             q.query,
@@ -280,6 +336,7 @@ def chat_impl(q: Chat):
             if q.tools and q.rag
             else None,
             max_search_calls=q.tool_call_limit,
+            trace=trace,
         )
         if not history:
             session.title = q.query[:80]
@@ -296,6 +353,8 @@ def chat_impl(q: Chat):
                     role="assistant",
                     content=answer,
                     citations=citations,
+                    trace=trace,
+                    details=details,
                     sequence=len(history) + 1,
                 ),
             ]
@@ -304,6 +363,8 @@ def chat_impl(q: Chat):
         return {
             "answer": answer,
             "citations": citations,
+            "trace": trace,
+            "details": details,
             "generation": generation_info.get(),
             "retrieval": found,
             "tool_calls": tool_log,
@@ -319,18 +380,24 @@ def stream_chat(q: Chat):
 
     from fastapi.responses import StreamingResponse
 
-    from .generation import token_sink
+    from .generation import detail_sink, token_sink, trace_sink
 
     events = queue.Queue()
 
     def worker():
-        context = token_sink.set(lambda token: events.put(("token", {"text": token})))
+        token_context = token_sink.set(
+            lambda token: events.put(("token", {"text": token}))
+        )
+        trace_context = trace_sink.set(lambda step: events.put(("trace", step)))
+        detail_context = detail_sink.set(lambda event: events.put(("detail", event)))
         try:
             events.put(("done", chat(q)))
         except Exception as exc:
             events.put(("error", {"message": str(exc)}))
         finally:
-            token_sink.reset(context)
+            detail_sink.reset(detail_context)
+            trace_sink.reset(trace_context)
+            token_sink.reset(token_context)
 
     threading.Thread(target=worker, daemon=True).start()
 
