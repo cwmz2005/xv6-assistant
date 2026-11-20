@@ -257,6 +257,7 @@ def _chat_impl(q: Chat, details):
         from .conversation import retrieval_query
 
         effective_query = retrieval_query(q.query, history)
+        initial_candidates = min(q.candidates, q.top_k)
         found = (
             search(
                 db,
@@ -270,6 +271,7 @@ def _chat_impl(q: Chat, details):
                         }
                     ),
                     "query": effective_query,
+                    "candidates": initial_candidates,
                 },
             )
             if q.rag
@@ -291,6 +293,7 @@ def _chat_impl(q: Chat, details):
                 "status": "done",
                 "query": effective_query,
                 "count": len(evidence),
+                "candidates": initial_candidates,
                 "strategy": q.strategy,
                 "rerank": q.rerank,
                 "retrieval_ms": found.get("retrieval_ms"),
@@ -305,24 +308,20 @@ def _chat_impl(q: Chat, details):
                     "query": effective_query,
                     "strategy": q.strategy,
                     "top_k": q.top_k,
-                    "candidates": q.candidates,
+                    "candidates": initial_candidates,
                     "rerank": q.rerank,
                     "rrf_k": q.rrf_k,
                     "version": q.version,
                     "retrieval_ms": found.get("retrieval_ms"),
                     "reranker_ms": found.get("reranker_ms"),
-                    "results": evidence,
+                    "results": list(evidence),
                     "candidate_scores": found.get("candidate_scores", []),
                 }
             )
 
-        answer, citations, tool_log = generate(
-            q.query,
-            history,
-            evidence,
-            q.rag,
-            (
-                lambda query: search(
+        def tool_search(query, path_regex=None):
+            try:
+                return search(
                     db,
                     query,
                     q.strategy,
@@ -331,10 +330,23 @@ def _chat_impl(q: Chat, details):
                     q.rerank,
                     q.rrf_k,
                     q.version,
+                    path_regex=path_regex,
                 )
-            )
-            if q.tools and q.rag
-            else None,
+            except Exception as exc:
+                return {
+                    "results": [],
+                    "candidate_scores": [],
+                    "retrieval_ms": 0,
+                    "reranker_ms": 0,
+                    "error": str(exc),
+                }
+
+        answer, citations, tool_log = generate(
+            q.query,
+            history,
+            evidence,
+            q.rag,
+            tool_search if q.tools and q.rag else None,
             max_search_calls=q.tool_call_limit,
             trace=trace,
         )

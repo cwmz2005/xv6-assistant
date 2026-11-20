@@ -40,6 +40,11 @@ function TraceStepView({ step }: { step: TraceStep }) {
           <span className="trace-kind skipped">跳过</span>
           <div>
             <div className="trace-label">{step.query || "无效查询"}</div>
+            {step.path_regex ? (
+              <div className="trace-meta">
+                路径筛选：<code>{step.path_regex}</code>
+              </div>
+            ) : null}
             <div className="trace-meta">{step.reason}</div>
           </div>
         </div>
@@ -56,6 +61,11 @@ function TraceStepView({ step }: { step: TraceStep }) {
         </span>
         <div className="trace-search">
           <div className="trace-label">{step.query}</div>
+          {step.path_regex ? (
+            <div className="trace-meta">
+              路径筛选：<code>{step.path_regex}</code>
+            </div>
+          ) : null}
           {step.status === "running" ? (
             <div className="trace-meta">正在搜索知识库…</div>
           ) : (

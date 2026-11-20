@@ -38,12 +38,17 @@ def search(
     rerank=False,
     rrf_k=60,
     version=None,
+    path_regex=None,
 ):
     version = version or settings.default_code_version
     if strategy not in {"dense", "bm25", "hybrid"}:
         raise ValueError("Unknown retrieval strategy")
     if not 1 <= top_k <= candidates <= 100:
         raise ValueError("Require 1 <= top_k <= candidates <= 100")
+    if path_regex is not None:
+        path_regex = str(path_regex).strip() or None
+        if path_regex is not None and len(path_regex) > 200:
+            raise ValueError("path_regex must be at most 200 characters")
     start = time.perf_counter()
     scope = select(Chunk)
     if version:
@@ -53,6 +58,8 @@ def search(
                 Chunk.location["commit"].astext.like("directory-%"),
             )
         )
+    if path_regex:
+        scope = scope.where(Chunk.location["path"].astext.op("~")(path_regex))
     rows = list(db.scalars(scope))
     byid = {r.id: r for r in rows}
     scores = {}
@@ -70,6 +77,8 @@ def search(
                     Chunk.location["commit"].astext.like("directory-%"),
                 )
             )
+        if path_regex:
+            dense = dense.where(Chunk.location["path"].astext.op("~")(path_regex))
         found = db.execute(
             dense.order_by(Chunk.embedding.cosine_distance(vector), Chunk.id).limit(
                 candidates
@@ -128,6 +137,7 @@ def search(
                 "top_k": top_k,
                 "rerank": rerank,
                 "rrf_k": rrf_k,
+                "path_regex": path_regex,
                 **result,
             }
         )

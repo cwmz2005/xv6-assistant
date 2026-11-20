@@ -27,6 +27,7 @@ export type TraceStep = {
   status?: "delta" | "running" | "done" | "skipped";
   text?: string;
   query?: string;
+  path_regex?: string | null;
   round?: number;
   count?: number;
   added?: number;
@@ -71,6 +72,8 @@ export type DetailEvent = {
   rag?: boolean;
   messages?: PromptMessage[];
   query?: string;
+  path_regex?: string | null;
+  error?: string;
   round?: number;
   strategy?: string;
   top_k?: number;

@@ -600,6 +600,25 @@ button {
 .detail-meta {
   margin-bottom: 8px;
 }
+.detail-regex-line,
+.detail-error {
+  margin-bottom: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.detail-regex-line {
+  background: #f2f6f0;
+  color: #5d6b61;
+}
+.detail-error {
+  background: #fdf3f0;
+  color: #a4523e;
+}
 .detail-heading {
   display: block;
   margin: 12px 0 6px;

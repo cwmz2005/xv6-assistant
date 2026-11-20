@@ -137,6 +137,14 @@ function EventBody({
           <Tag>证据总数 {event.evidence_count}</Tag>
         ) : null}
       </Space>
+      {event.path_regex ? (
+        <div className="detail-regex-line">
+          路径筛选：<code>{event.path_regex}</code>
+        </div>
+      ) : null}
+      {event.error ? (
+        <div className="detail-error">检索错误：{event.error}</div>
+      ) : null}
       {event.results?.length ? (
         <>
           <Typography.Text type="secondary" className="detail-heading">

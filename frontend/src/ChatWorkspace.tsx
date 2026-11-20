@@ -470,6 +470,9 @@ export default function ChatWorkspace() {
                   />
                 </label>
               </Space>
+              <p className="setting-note">
+                初始 RAG 仅取 Top K 个候选；候选数用于补充检索与检索调试。
+              </p>
               {sid && (
                 <Popconfirm
                   title="删除当前会话和消息？"
