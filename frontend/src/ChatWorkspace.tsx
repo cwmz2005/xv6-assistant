@@ -278,7 +278,7 @@ export default function ChatWorkspace() {
           {!messages.length && !draft && !liveTrace.length ? (
             <div className="welcome">
               <div className="eyebrow">XV6 / RISCV</div>
-              <h1>从一个问题，读懂内核。</h1>
+              <h1>深挖源码，为你的 xv6 学习旅程保驾护航。</h1>
               <p>结合教材、实验指导与原始源码，追溯每一处依据。</p>
               <div className="starter-grid">
                 {[
@@ -334,7 +334,7 @@ export default function ChatWorkspace() {
               autoSize={{ minRows: 2, maxRows: 7 }}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="提问 xv6"
+              placeholder="向 xv6 学习助手提问"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                   e.preventDefault();

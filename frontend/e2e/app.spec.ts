@@ -8,9 +8,9 @@ test("home and lazy-loaded knowledge management", async ({ page }) => {
   page.on("request", (request) => requests.push(request.url()));
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "从一个问题，读懂内核。" }),
+    page.getByRole("heading", { name: "深挖源码，为你的 xv6 学习旅程保驾护航。" }),
   ).toBeVisible();
-  await expect(page.getByPlaceholder("提问 xv6")).toBeVisible();
+  await expect(page.getByPlaceholder("向 xv6 学习助手提问")).toBeVisible();
   await expect(page.getByText("补充搜索", { exact: true })).toBeVisible();
   expect(requests.some((url) => url.includes("/KnowledgePanel-"))).toBeFalsy();
   await page.screenshot({ path: screenshotRoot + "/home.png", fullPage: true });
