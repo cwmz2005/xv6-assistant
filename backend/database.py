@@ -1,13 +1,16 @@
 import uuid
+from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
+    DateTime,
     ForeignKey,
     String,
     Text,
     UniqueConstraint,
     create_engine,
+    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -55,6 +58,9 @@ class Session(Base):
     __tablename__ = "sessions"
     id: Mapped[str] = mapped_column(primary_key=True, default=uid)
     title: Mapped[str] = mapped_column(Text, default="新会话")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
 
 class Message(Base):

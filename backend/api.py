@@ -1,5 +1,6 @@
 import time
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -178,7 +179,12 @@ def document_chunks(document_id: str):
 @app.get("/api/sessions")
 def sessions():
     with DB() as db:
-        return [{"id": s.id, "title": s.title} for s in db.scalars(select(Session))]
+        return [
+            {"id": s.id, "title": s.title}
+            for s in db.scalars(
+                select(Session).order_by(Session.updated_at.desc(), Session.id)
+            )
+        ]
 
 
 @app.post("/api/sessions")
@@ -247,6 +253,7 @@ def _chat_impl(q: Chat, details):
         session = db.get(Session, q.session_id)
         if not session:
             raise HTTPException(404, "会话不存在")
+        session.updated_at = datetime.now(UTC)
         history = list(
             db.scalars(
                 select(Message)

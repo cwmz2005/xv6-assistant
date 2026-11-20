@@ -29,13 +29,16 @@ def verify():
             } <= set(inspector.get_temp_table_names())
             assert (
                 connection.scalar(text("SELECT version_num FROM alembic_version"))
-                == "0006"
+                == "0007"
             )
             assert "is_system" in {
                 c["name"] for c in inspector.get_columns("documents", schema=schema)
             }
             assert {"trace", "details"} <= {
                 c["name"] for c in inspector.get_columns("messages", schema=schema)
+            }
+            assert "updated_at" in {
+                c["name"] for c in inspector.get_columns("sessions", schema=schema)
             }
             assert "uq_messages_session_sequence" in {
                 c["name"]
