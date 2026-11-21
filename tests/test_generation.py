@@ -30,7 +30,7 @@ def test_bounded_search_answers_every_tool_call_and_sanitizes_citations(monkeypa
                 ],
             )
 
-    monkeypatch.setattr(generation, "model", lambda: Model())
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
     calls = []
 
     def search(query):
@@ -51,7 +51,7 @@ def test_baseline_does_not_claim_evidence(monkeypatch):
             assert "当前未检索知识库" in messages[0].content
             return SimpleNamespace(content="baseline answer")
 
-    monkeypatch.setattr(generation, "model", lambda: Model())
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
     assert generation.generate("question", [], [], rag=False)[1] == []
 
 
@@ -78,7 +78,7 @@ def test_default_allows_multiple_distinct_searches(monkeypatch):
                 )
             return AIMessage(content="Evidence collected")
 
-    monkeypatch.setattr(generation, "model", lambda: Model())
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
     calls = []
 
     def search(query):
@@ -98,7 +98,7 @@ def test_unique_short_citation_resolves_to_real_evidence(monkeypatch):
         def invoke(self, messages):
             return AIMessage(content="claim [1234abcd]")
 
-    monkeypatch.setattr(generation, "model", lambda: Model())
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
     answer, citations, _ = generation.generate("question", [], [{"id": cid}])
     assert "[" + cid + "]" in answer and citations == [{"id": cid}]
 
@@ -125,7 +125,7 @@ def test_trace_and_details_are_streamed_and_persisted(monkeypatch):
                 ],
             )
 
-    monkeypatch.setattr(generation, "model", lambda: Model())
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
     tool_events = []
     detail_events = []
     streamed = []
@@ -214,7 +214,7 @@ def test_path_regex_is_forwarded_and_recorded(monkeypatch):
                 ],
             )
 
-    monkeypatch.setattr(generation, "model", lambda: Model())
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
     calls = []
 
     def search(query, path_regex=None):
@@ -277,7 +277,7 @@ def test_invalid_path_regex_is_rejected_without_search(monkeypatch):
                 ],
             )
 
-    monkeypatch.setattr(generation, "model", lambda: Model())
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
     calls = []
     trace = []
 
@@ -302,5 +302,5 @@ def test_truncated_response_is_explicit(monkeypatch):
                 content="partial", response_metadata={"finish_reason": "length"}
             )
 
-    monkeypatch.setattr(generation, "model", lambda: Model())
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
     assert "回答尚未完成" in generation.generate("question", [], [], False)[0]

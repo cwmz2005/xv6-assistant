@@ -8,12 +8,12 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from .config import settings
-from .database import DB, Chunk
-from .evaluation import metrics
-from .evaluation_schema import Experiment
-from .evaluation_summary import summarize
-from .retrieval import search
+from ..core.config import settings
+from ..core.database import DB, Chunk
+from ..retrieval import search
+from .metrics import metrics
+from .schemas import Experiment
+from .summary import summarize
 
 
 def run(dataset, output, k=5, candidates=20, warmup=False):
@@ -30,8 +30,8 @@ def run(dataset, output, k=5, candidates=20, warmup=False):
     cases = [case.model_dump() for case in checked.cases]
     records = []
     if warmup:
-        from .ingestion import embedder
-        from .retrieval import reranker
+        from ..ingestion import embedder
+        from ..retrieval import reranker
 
         embedder().embed_query("query: xv6")
         reranker().predict([("xv6", "xv6 operating system")])

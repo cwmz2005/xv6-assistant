@@ -51,7 +51,7 @@
 ## 复现与复核
 
 ```powershell
-uv run python -m backend.evaluate evaluation/heldout.source-verified.jsonl evaluation/reproduced.json --k 5 --candidates 20 --warmup
+uv run python -m backend.evaluation.cli evaluation/heldout.source-verified.jsonl evaluation/reproduced.json --k 5 --candidates 20 --warmup
 ```
 
 四方案问答可在实验面板粘贴同一 JSONL，打开“同时生成回答”和“纳入重排序方案”后运行。可重载历史结果，逐题比较参考答案、实际回答，保存核验人及评分依据，或执行明确标注局限的模型辅助核验并导出 JSON。

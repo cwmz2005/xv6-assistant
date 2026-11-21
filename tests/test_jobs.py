@@ -1,4 +1,4 @@
-from backend import jobs
+from backend.core import jobs
 
 
 def test_active_worker_is_not_recovered_as_failed():

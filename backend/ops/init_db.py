@@ -2,7 +2,7 @@
 
 from sqlalchemy import text
 
-from .database import Base, engine
+from ..core.database import Base, engine
 
 
 def initialize():

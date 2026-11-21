@@ -5,9 +5,9 @@ from functools import lru_cache
 from rank_bm25 import BM25Okapi
 from sqlalchemy import or_, select
 
-from .config import settings
-from .database import Chunk, RetrievalLog
-from .ingestion import embedder
+from ..core.config import settings
+from ..core.database import Chunk, RetrievalLog
+from ..ingestion import embedder
 
 
 def tokens(text):

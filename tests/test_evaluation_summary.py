@@ -1,4 +1,4 @@
-from backend.evaluation_summary import summarize
+from backend.evaluation.summary import summarize
 
 
 def test_human_scores_are_never_inferred_from_retrieval():

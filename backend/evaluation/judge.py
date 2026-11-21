@@ -4,8 +4,8 @@ import json
 
 from pydantic import BaseModel, Field
 
-from .config import settings
-from .generation import model
+from ..core.config import settings
+from ..generation import model
 
 
 class Judgment(BaseModel):

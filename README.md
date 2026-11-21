@@ -24,6 +24,35 @@ pnpm dev
 
 开发服务通过 Vite 代理 /api 到后端。构建命令为 pnpm build。需要可用的 Node.js 环境。
 
+## 代码结构
+
+后端根目录只保留应用入口、共享请求模型和包目录，基础设施与领域逻辑分别下沉：
+
+```text
+backend/
+  api.py                 FastAPI 装配、生命周期、前端静态托管
+  schemas.py             跨路由共享的请求模型
+  core/                  配置、数据库模型、后台任务、会话锁
+  ingestion/             文档发现、切分、PDF/目录导入
+  retrieval/             Dense/BM25/RRF 召回与重排
+  generation/            Prompt、模型客户端、工具循环、引用校验、事件
+  chat/                  会话上下文与单轮问答编排
+  evaluation/            检索实验、人工核验、辅助评分、评估 CLI
+  routers/               catalog / search / sessions / chat HTTP 路由
+  ops/                   初始化数据库、迁移链验证等运维脚本
+```
+
+前端按聊天工作区、消息渲染和详情渲染拆分：
+
+```text
+frontend/src/
+  chat/                  会话侧栏、输入区、会话视图、设置/引用/详情抽屉
+  components/            消息卡片、过程卡片、知识库/评估/检索面板
+  components/generation/ 详情事件渲染（Prompt、证据、候选）
+  api/                   普通请求与 SSE 客户端
+  types.ts               共享类型
+```
+
 ## 模型
 
 Embedding 使用 intfloat/multilingual-e5-small，384 维，本地 CPU 推理，添加 query: 和 passage: 前缀。Reranker 使用 BAAI/bge-reranker-base，按需缓存。无需 CUDA。
@@ -54,7 +83,7 @@ PDF 共 679 页、1784 个片段：网卡手册 410 页/973 片段，教材 114 
 
 ```powershell
 uv run pytest -q
-uv run python -m backend.evaluate evaluation/annotated.jsonl evaluation/results.json --k 5 --warmup
+uv run python -m backend.evaluation.cli evaluation/annotated.jsonl evaluation/results.json --k 5 --warmup
 ```
 
 测试集为 JSONL，含 id、question、reference_answer、relevance、type、annotation_status。relevance 为真实 chunk ID 到人工等级的映射。必须人工标注完成并设置 annotation_status=complete 后才能批量评估。
@@ -108,7 +137,7 @@ uv run uvicorn backend.api:app --host 127.0.0.1 --port 8000 --workers 1
 ```powershell
 uv run ruff check backend migrations tests
 uv run pytest -q -p no:cacheprovider --basetemp=.test-tmp
-uv run python -m backend.verify_migrations
+uv run python -m backend.ops.verify_migrations
 pnpm --dir frontend lint
 ```
 

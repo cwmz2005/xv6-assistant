@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from backend.pdf_source import pdf_chunks
+from backend.ingestion.pdf_source import pdf_chunks
 
 
 def test_textbook_chunks_have_real_pages_and_no_fake_lines():

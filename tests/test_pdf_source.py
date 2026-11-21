@@ -1,6 +1,6 @@
 from pypdf import PdfWriter
 
-from backend.pdf_source import pdf_chunks, pdf_report
+from backend.ingestion.pdf_source import pdf_chunks, pdf_report
 
 
 def test_blank_pdf_does_not_fabricate_text(tmp_path):

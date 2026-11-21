@@ -1,4 +1,4 @@
-from backend.sources import directory_files
+from backend.ingestion.sources import directory_files
 
 
 def test_html_strips_scripts_and_preserves_content(tmp_path):

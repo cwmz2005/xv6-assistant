@@ -71,7 +71,7 @@ test("retrieval comparison and persisted experiment history", async ({
   });
   expect(fixture.ok()).toBeTruthy();
   await page.goto("/");
-  await page.getByPlaceholder("提问 xv6").fill("walkaddr PTE_U");
+  await page.getByPlaceholder("向 xv6 学习助手提问").fill("walkaddr PTE_U");
   await page.getByRole("button", { name: "检索调试", exact: true }).click();
   await expect(page.getByRole("tab", { name: "关键词 BM25" })).toBeVisible({
     timeout: 120000,
@@ -120,7 +120,7 @@ test("real streamed chat and citation drawer", async ({ page, request }) => {
   try {
     await page.goto("/");
     await page
-      .getByPlaceholder("提问 xv6")
+      .getByPlaceholder("向 xv6 学习助手提问")
       .fill(
         "walkaddr 为什么检查 PTE_U？请简短回答，并且必须在回答中使用至少一处检索到的源码片段引用。",
       );
@@ -169,7 +169,7 @@ test("generation process card and live details drawer", async ({
   const question = "walkaddr 为什么检查 PTE_U？请简短回答。E2E详情验证";
   try {
     await page.goto("/");
-    await page.getByPlaceholder("提问 xv6").fill(question);
+    await page.getByPlaceholder("向 xv6 学习助手提问").fill(question);
     const streamRequest = page.waitForRequest(
       (request) =>
         request.url().endsWith("/api/chat/stream") &&

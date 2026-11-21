@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.evaluation_schema import Case, Experiment
+from backend.evaluation.schemas import Case, Experiment
 
 
 def case():

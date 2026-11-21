@@ -1,6 +1,6 @@
 from alembic import context
 
-from backend.database import Base, engine
+from backend.core.database import Base, engine
 
 
 def migrate(connection):

@@ -4,7 +4,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import inspect, text
 
-from .database import engine
+from ..core.database import engine
 
 
 def verify():

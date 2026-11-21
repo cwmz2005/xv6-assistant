@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from backend.conversation import retrieval_query
+from backend.chat.conversation import retrieval_query
 
 
 def test_followup_preserves_named_topic():

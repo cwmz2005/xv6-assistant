@@ -5,9 +5,9 @@ from pathlib import Path
 
 from sqlalchemy import delete, select
 
+from ..core.config import settings
+from ..core.database import Chunk, Document
 from .chunking import split
-from .config import settings
-from .database import Chunk, Document
 
 
 @lru_cache(maxsize=1)

@@ -1,1 +1,1 @@
-export { default } from "./ChatWorkspace";
+export { default } from "./chat/ChatWorkspace";

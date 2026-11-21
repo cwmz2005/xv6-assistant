@@ -1,4 +1,4 @@
-from backend.chunking import split
+from backend.ingestion.chunking import split
 
 
 def test_xv6_function_boundaries_and_lines():

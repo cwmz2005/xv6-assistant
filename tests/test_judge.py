@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from backend import judge
+from backend.evaluation import judge
 
 
 def test_model_judge_is_explicitly_separate_from_human_scores(monkeypatch):
