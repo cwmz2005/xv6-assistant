@@ -10,11 +10,11 @@ def model():
 
     sink = token_sink.get()
     state = reasoning_state.get()
-    options = (
-        {"reasoning_effort": settings.llm_reasoning_effort}
-        if settings.llm_reasoning_effort
-        else {}
-    )
+    options = {}
+    if settings.llm_reasoning_effort:
+        options["reasoning_effort"] = settings.llm_reasoning_effort
+    if settings.llm_max_tokens:
+        options["max_tokens"] = settings.llm_max_tokens
 
     class CompatibleChatOpenAI(ChatOpenAI):
         """Keep provider reasoning fields that ChatOpenAI otherwise discards."""

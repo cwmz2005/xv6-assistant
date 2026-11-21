@@ -143,7 +143,7 @@ def _build_result(experiment, records):
         else "retrieval_only",
         "llm_model": settings.llm_model,
         "temperature": 0,
-        "max_tokens": None,
+        "max_tokens": settings.llm_max_tokens,
         "reasoning_effort": settings.llm_reasoning_effort,
         "embedding_model": settings.embedding_model,
         "reranker_model": settings.reranker_model,
