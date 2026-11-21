@@ -255,6 +255,126 @@ def test_path_regex_is_forwarded_and_recorded(monkeypatch):
     assert answer == "answer"
 
 
+def test_version_branch_is_resolved_and_forwarded(monkeypatch):
+    from langchain_core.messages import AIMessage, ToolMessage
+
+    versions = [
+        {"value": "util", "commit": "a" * 40, "label": "util"},
+        {"value": "syscall", "commit": "b" * 40, "label": "syscall"},
+    ]
+    schema_holder = {}
+
+    class Model:
+        def bind_tools(self, schema):
+            schema_holder.update(schema[0]["function"])
+            return self
+
+        def invoke(self, messages):
+            if any(isinstance(m, ToolMessage) for m in messages):
+                return AIMessage(content="answer")
+            return AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "knowledge_search",
+                        "args": {"query": "syscall", "version": "syscall"},
+                        "id": "1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
+    calls = []
+
+    def search(query, path_regex=None, version=None):
+        calls.append((query, path_regex, version))
+        return {
+            "results": [
+                {
+                    "id": "c" * 64,
+                    "text": "evidence",
+                    "location": {"path": "kernel/syscall.c", "start_line": 1},
+                }
+            ],
+            "candidate_scores": [],
+            "retrieval_ms": 1.0,
+        }
+
+    streamed = []
+    details = []
+    trace = []
+    trace_token = generation.trace_sink.set(streamed.append)
+    detail_token = generation.detail_sink.set(details.append)
+    try:
+        answer, _, logs = generation.generate(
+            "question",
+            [],
+            [],
+            search_tool=search,
+            trace=trace,
+            versions=versions,
+        )
+    finally:
+        generation.detail_sink.reset(detail_token)
+        generation.trace_sink.reset(trace_token)
+
+    enum = schema_holder["parameters"]["properties"]["version"]["enum"]
+    assert enum == ["util", "syscall"]
+    assert calls == [("syscall", None, "b" * 40)]
+    assert trace[0]["version"] == "b" * 40
+    assert trace[0]["version_label"] == "syscall"
+    assert logs[0]["version"] == "b" * 40
+    tool_events = [
+        event for event in details if event["type"] in ("tool_call", "tool_result")
+    ]
+    assert all(
+        event["version"] == "b" * 40 and event["version_label"] == "syscall"
+        for event in tool_events
+    )
+    assert answer == "answer"
+
+
+def test_invalid_version_is_rejected_without_search(monkeypatch):
+    from langchain_core.messages import AIMessage, ToolMessage
+
+    versions = [{"value": "util", "commit": "a" * 40, "label": "util"}]
+
+    class Model:
+        def bind_tools(self, schema):
+            return self
+
+        def invoke(self, messages):
+            if any(isinstance(m, ToolMessage) for m in messages):
+                return AIMessage(content="answer")
+            return AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "knowledge_search",
+                        "args": {"query": "kalloc", "version": "missing"},
+                        "id": "1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+
+    monkeypatch.setattr(generation.client, "model", lambda: Model())
+    calls = []
+    trace = []
+
+    def search(query, path_regex=None, version=None):
+        calls.append(query)
+        return {"results": []}
+
+    answer, _, logs = generation.generate(
+        "question", [], [], search_tool=search, trace=trace, versions=versions
+    )
+    assert answer == "answer" and logs == [] and calls == []
+    assert trace[0]["status"] == "skipped"
+    assert "version" in trace[0]["reason"]
+
+
 def test_invalid_path_regex_is_rejected_without_search(monkeypatch):
     from langchain_core.messages import AIMessage, ToolMessage
 

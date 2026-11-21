@@ -94,7 +94,7 @@ uv run python -m backend.evaluation.cli evaluation/annotated.jsonl evaluation/re
 
 evaluation/smoke.source-verified.jsonl 是开发者核对源码的单样例冒烟测试，smoke-results.json 为实际结果，不能视为独立评测或泛化性能结论。首次加载模型包含冷启动耗时，不能直接和热启动对比。
 
-聊天支持 SSE，接口为 POST /api/chat/stream；补充搜索开关允许模型按需多轮检索，重复查询复用结果，连续两轮无新增证据时结束。默认不设次数上限，可在问答设置或 tool_call_limit 参数中指定。工具查询使用通用系统提示词约束：优先 2–5 个精确技术关键词，并可按 path_regex 限定源码或教材路径（如 `kernel/.*\.c$`）；不包含题目特定词表。引用只绑定真实证据；唯一的短 ID 前缀会恢复为完整引用，歧义引用移除。
+聊天支持 SSE，接口为 POST /api/chat/stream；补充搜索开关允许模型按需多轮检索，重复查询复用结果，连续两轮无新增证据时结束。默认不设次数上限，可在问答设置或 tool_call_limit 参数中指定。工具查询使用通用系统提示词约束：优先 2–5 个精确技术关键词，并可按 path_regex 限定源码或教材路径（如 `kernel/.*\.c$`），也可用 version 选择已导入的代码分支/提交，留空沿用会话当前版本；不包含题目特定词表。引用只绑定真实证据；唯一的短 ID 前缀会恢复为完整引用，歧义引用移除。
 
 初始 RAG 仅取 Top K 个候选（与返回片段数相同），仅用于给模型一个起点；补充检索仍使用问答设置中的候选数，避免初始重排消耗过多 CPU。
 

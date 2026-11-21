@@ -41,6 +41,11 @@ function TraceStepView({ step }: { step: TraceStep }) {
                 路径筛选：<code>{step.path_regex}</code>
               </div>
             ) : null}
+            {step.version_label || step.version ? (
+              <div className="trace-meta">
+                版本筛选：<code>{step.version_label || step.version}</code>
+              </div>
+            ) : null}
             <div className="trace-meta">{step.reason}</div>
           </div>
         </div>
@@ -58,6 +63,11 @@ function TraceStepView({ step }: { step: TraceStep }) {
           {step.path_regex ? (
             <div className="trace-meta">
               路径筛选：<code>{step.path_regex}</code>
+            </div>
+          ) : null}
+          {step.version_label || step.version ? (
+            <div className="trace-meta">
+              版本筛选：<code>{step.version_label || step.version}</code>
             </div>
           ) : null}
           {step.status === "running" ? (

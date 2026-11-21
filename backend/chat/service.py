@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from ..core.config import settings
 from ..core.database import DB, Message, Session
+from ..core.versions import version_options
 from ..generation import (
     collect_details,
     emit_detail,
@@ -119,7 +120,7 @@ def _record_initial_retrieval(q, effective_query, found, evidence, candidates, t
 
 
 def _make_tool_search(db, q: Chat):
-    def tool_search(query, path_regex=None):
+    def tool_search(query, path_regex=None, version=None):
         try:
             return search(
                 db,
@@ -129,7 +130,7 @@ def _make_tool_search(db, q: Chat):
                 q.candidates,
                 q.rerank,
                 q.rrf_k,
-                q.version,
+                version if version is not None else q.version,
                 path_regex=path_regex,
             )
         except Exception as exc:
@@ -190,6 +191,7 @@ def chat_impl(q: Chat):
             session = _load_session(db, q.session_id)
             history = _load_history(db, q.session_id)
             initial = _retrieve_initial(db, q, history)
+            versions = version_options(db) if q.tools and q.rag else []
             tool_search = _make_tool_search(db, q) if q.tools and q.rag else None
             answer, citations, tool_log = generate(
                 q.query,
@@ -199,6 +201,7 @@ def chat_impl(q: Chat):
                 tool_search,
                 max_search_calls=q.tool_call_limit,
                 trace=initial.trace,
+                versions=versions,
             )
             _persist_turn(
                 db,

@@ -28,6 +28,8 @@ export type TraceStep = {
   text?: string;
   query?: string;
   path_regex?: string | null;
+  version?: string | null;
+  version_label?: string | null;
   round?: number;
   count?: number;
   added?: number;
@@ -81,6 +83,7 @@ export type DetailEvent = {
   rerank?: boolean;
   rrf_k?: number;
   version?: string | null;
+  version_label?: string | null;
   retrieval_ms?: number;
   reranker_ms?: number;
   added?: number;

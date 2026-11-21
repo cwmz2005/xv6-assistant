@@ -11,7 +11,7 @@ from .events import (
 )
 from .formatting import snapshot_messages
 from .prompts import build_prompt, initial_messages
-from .tools import SEARCH_TOOL_SCHEMA, SearchToolRunner
+from .tools import SearchToolRunner, search_tool_schema
 
 
 class GenerationSession:
@@ -26,6 +26,7 @@ class GenerationSession:
         search_tool=None,
         max_search_calls=None,
         trace=None,
+        versions=None,
     ):
         generation_info.set(None)
         self.question = question
@@ -34,6 +35,7 @@ class GenerationSession:
         self.rag = rag
         self.search_tool = search_tool
         self.max_search_calls = max_search_calls
+        self.versions = versions or []
         self.trace = [] if trace is None else trace
         self.state = StreamState()
         reasoning_state.set(self.state)
@@ -92,9 +94,13 @@ class GenerationSession:
         from langchain_core.messages import ToolMessage
 
         runner = SearchToolRunner(
-            self.search_tool, self.max_search_calls, self.evidence, self.trace
+            self.search_tool,
+            self.max_search_calls,
+            self.evidence,
+            self.trace,
+            versions=self.versions,
         )
-        tool_client = self.client.bind_tools([SEARCH_TOOL_SCHEMA])
+        tool_client = self.client.bind_tools([search_tool_schema(self.versions)])
         response = self._invoke(tool_client)
         while response.tool_calls:
             self.messages.append(response)
@@ -164,6 +170,7 @@ def generate(
     search_tool=None,
     max_search_calls=None,
     trace=None,
+    versions=None,
 ):
     return GenerationSession(
         question,
@@ -173,4 +180,5 @@ def generate(
         search_tool=search_tool,
         max_search_calls=max_search_calls,
         trace=trace,
+        versions=versions,
     ).run()

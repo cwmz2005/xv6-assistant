@@ -3,6 +3,12 @@ import type { DetailEvent, Evidence } from "../../types";
 import EvidenceBlock from "./EvidenceBlock";
 import { PromptEvent, SystemPromptEvent } from "./PromptEvent";
 
+function versionName(event: DetailEvent) {
+  const value = event.version_label || event.version;
+  if (!value) return "";
+  return value.length > 16 ? value.slice(0, 10) : value;
+}
+
 export default function EventBody({
   event,
   onEvidence,
@@ -27,7 +33,9 @@ export default function EventBody({
         {event.candidates ? <Tag>候选 {event.candidates}</Tag> : null}
         {event.rerank ? <Tag>重排序</Tag> : null}
         {event.cached ? <Tag color="gold">复用缓存</Tag> : null}
-        {event.version ? <Tag>版本 {event.version.slice(0, 10)}</Tag> : null}
+        {event.version_label || event.version ? (
+          <Tag>版本 {versionName(event)}</Tag>
+        ) : null}
         {event.retrieval_ms != null ? (
           <Tag>召回 {event.retrieval_ms.toFixed(0)} ms</Tag>
         ) : null}

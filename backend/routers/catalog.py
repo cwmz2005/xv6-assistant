@@ -1,13 +1,11 @@
 """Version, import and document-catalog endpoints."""
 
-import json
-from pathlib import Path
-
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 
 from ..core.database import DB, Chunk, Document
 from ..core.jobs import submit
+from ..core.versions import version_options
 from ..ingestion import ingest
 from ..schemas import Import
 
@@ -28,19 +26,11 @@ def versions():
 
 @router.get("/versions/details")
 def version_details():
-    manifest = Path(__file__).resolve().parents[2] / "evaluation/source-versions.json"
-    names = (
-        {
-            row["commit"]: row["branch"]
-            for row in json.loads(manifest.read_text(encoding="utf-8"))
-        }
-        if manifest.exists()
-        else {}
-    )
-    return [
-        {"version": version, "label": names.get(version, "自定义源码")}
-        for version in versions()
-    ]
+    with DB() as db:
+        return [
+            {"version": option["commit"], "label": option["label"]}
+            for option in version_options(db)
+        ]
 
 
 @router.post("/import")
