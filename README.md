@@ -104,7 +104,7 @@ evaluation/smoke.source-verified.jsonl 是开发者核对源码的单样例冒�
 
 过程卡片优先展示上游返回的 reasoning_content 显式推理；上游不返回时只展示可观测的检索与工具调用，不伪造思考内容。
 
-LLM_MAX_TOKENS 控制统一输出预算，LLM_REASONING_EFFORT 为可选推理强度。本机已验证 low，其他兼容 API 不支持时应留空。生成返回 finish_reason、usage 和 complete 元数据；达到输出上限会明确提示回答未完成，不能作为完整回答计分。
+正常回答不设置客户端 max_tokens 上限，由模型或服务端自身的输出限制决定；LLM_REASONING_EFFORT 为可选推理强度。本机已验证 low，其他兼容 API 不支持时应留空。生成返回 finish_reason、usage 和 complete 元数据；若上游仍达到自身上限，会明确提示回答未完成，不能作为完整回答计分。
 
 开发集真实对比与失败分析见 evaluation/ANALYSIS.md。六题结果是开发者源码核对集，不是独立人工测试集。四方案生成的八条回答保存于 development-generation-results.json，未填人工准确率，且旧结果存在截断和短引用未关联的问题，保留原样供分析。
 

@@ -78,7 +78,6 @@ def model():
         timeout=120,
         max_retries=1,
         streaming=True,
-        max_tokens=settings.llm_max_tokens,
         callbacks=[TokenCallback()] if (sink or state is not None) else [],
         **options,
     )

@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     llm_base_url: str = ""
     llm_api_key: str = ""
     llm_model: str = ""
-    llm_max_tokens: int = 2048
     llm_reasoning_effort: str | None = None
     judge_model: str | None = None
     embedding_model: str = "intfloat/multilingual-e5-small"
