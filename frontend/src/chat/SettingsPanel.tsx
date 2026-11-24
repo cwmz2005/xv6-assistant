@@ -101,7 +101,7 @@ export default function SettingsPanel({
         </label>
       </Space>
       <p className="setting-note">
-        初始 RAG 仅取 Top K 个候选；候选数用于补充检索与检索调试。
+        初始 RAG 与补充检索共用候选数和重排设置，重排后取返回片段数。
       </p>
       {sid && (
         <Popconfirm

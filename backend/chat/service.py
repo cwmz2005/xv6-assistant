@@ -56,7 +56,7 @@ def _load_history(db, session_id):
 
 def _retrieve_initial(db, q: Chat, history):
     effective_query = retrieval_query(q.query, history)
-    candidates = min(q.candidates, q.top_k)
+    candidates = q.candidates
     found = (
         search(
             db,
